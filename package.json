@@ -1,0 +1,29 @@
+{
+  "name": "tssf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node ./dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Binarysearch/tssf.git"
+  },
+  "author": "Antonio Ruiz Gutierrez",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Binarysearch/tssf/issues"
+  },
+  "homepage": "https://github.com/Binarysearch/tssf#readme",
+  "devDependencies": {
+    "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "@types/express": "^4.17.6",
+    "express": "^4.17.1",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^6.5.5"
+  }
+}
