@@ -2,6 +2,13 @@ import { Post, Controller } from "../controller/controller";
 import { Observable, Subject } from "rxjs";
 import { Ta } from "./ta";
 
+interface SomeDto {
+
+}
+
+interface SomeResultType {
+
+}
 
 @Controller
 export class TestController {
@@ -13,7 +20,7 @@ export class TestController {
     }
 
     @Post('/hola')
-    public async handleRequest(body: any): Promise<any> {
+    public async handleRequest(body: SomeDto): Promise<SomeResultType> {
         return {
             body: body,
             r: this.r
@@ -22,9 +29,9 @@ export class TestController {
 
 
     @Post('/hola2')
-    public handleRequest2(body: any): Observable<any> {
+    public handleRequest2(body: SomeDto): Observable<SomeResultType> {
         this.ta.saySomething();
-        const s = new Subject();
+        const s: Subject<SomeResultType> = new Subject();
 
         setTimeout(() => {
             
@@ -42,7 +49,7 @@ export class TestController {
 
 
     @Post('/hola3')
-    public handleRequest3(body: any): any {
+    public handleRequest3(body: SomeDto): SomeResultType {
         return {
             body: body,
             r: this.r
