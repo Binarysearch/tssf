@@ -1,10 +1,8 @@
 import express = require('express');
-import { Observable, Subject } from 'rxjs';
+import { Observable } from 'rxjs';
 import { last } from 'rxjs/operators';
+import { Type, Injector } from '../injection/injector';
 
-
-
-const requestHandlers: Map<string, (req: any, rs: any) => void> = new Map();
 const controllers: Map<Object, any> = new Map();
 
 const app: express.Application = express();
@@ -17,67 +15,28 @@ app.listen(3000, function () {
 
 });
 
-@Controller
-class Test {
 
-    r = '111';
+export function Controller<U extends Type<any>>(constructor: U) {
     
+    const params: Type<any>[] = Reflect.getOwnMetadata('design:paramtypes', constructor);
 
-    @Handler('/hola')
-    public async handleRequest(body: any): Promise<any> {
-        return {
-            body: body,
-            r: this.r
-        };
+    if (!params || params.length === 0) {
+        controllers.set(constructor.prototype, new constructor());
+    } else if (params.length === 1) {
+        controllers.set(constructor.prototype, new constructor(Injector.resolve(params[0])));
+    } else {
+        controllers.set(constructor.prototype, new constructor(params.map(dep => Injector.resolve(dep))));
     }
-
-
-    @Handler('/hola2')
-    public handleRequest2(body: any): Observable<any> {
-        const s = new Subject();
-
-        setTimeout(() => {
-            
-            s.next({
-                body: body,
-                r: this.r
-            });
-
-            s.complete();
-
-        }, 100);
-
-        return s.asObservable();
-    }
-
-
-    @Handler('/hola3')
-    public handleRequest3(body: any): any {
-        return {
-            body: body,
-            r: this.r
-        };
-    }
-
-
+    
+    
+    return constructor;
 }
 
 
-
-function Controller<T extends {new(...args:any[]):{}}>(constructor:T) {
-    
-    controllers.set(constructor.prototype, new constructor());
-    
-    return class extends constructor {
-        
-    }
-}
-
-
-function Handler(path: string) {
+export function Post(path: string) {
     return function (target: Object, key: string | symbol, descriptor: PropertyDescriptor) {
         
-        requestHandlers.set(path, (req, res) => {
+        app.post(path, (req, res) => {
             
             const result = descriptor.value.call(controllers.get(target), req.body);
 
@@ -106,8 +65,4 @@ function Handler(path: string) {
     };
 }
 
-
-requestHandlers.forEach((v, k)=>{
-    app.post(k, <any>v);
-});
 

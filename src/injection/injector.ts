@@ -19,7 +19,7 @@ export function Injectable<U extends Type<any>>(constructorFunction: U) {
         });
     }
 
-    injectableDeps.set(constructorFunction, params);
+    injectableDeps.set(constructorFunction, params || []);
     
     return constructorFunction;
 }

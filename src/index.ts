@@ -1,10 +1,8 @@
 import { Ta } from './example/ta';
 import { Injector } from './injection/injector';
+import { TestController } from './example/test-controller';
 
 
-const ta: Ta = Injector.resolve(Ta);
-
-console.log(ta);
-console.log('----------');
-
-ta.saySomething();
+const controllers = [
+    TestController
+];
