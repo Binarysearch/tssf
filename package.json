@@ -1,6 +1,6 @@
 {
   "name": "@piros/tssf",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,7 +8,8 @@
     "start": "tsc && node ./dist/index.js",
     "build": "tsc",
     "gen-ng-code": "tsc && node dist/ng-codegen/generate.js ./src/example/test-controller.ts",
-    "publish": "npm publish dist/ --access=public"
+    "pre-publish": "node prepublish.js",
+    "publish:lib": "npm run build && npm run pre-publish && npm publish dist/ --access=public"
   },
   "repository": {
     "type": "git",
