@@ -1,13 +1,14 @@
 {
-  "name": "tssf",
-  "version": "1.0.0",
+  "name": "@piros/tssf",
+  "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "start": "tsc && node ./dist/index.js",
-    "build": "tsc && node ./node_modules/webpack/bin/webpack.js",
+    "build": "tsc",
     "gen-ng-code": "tsc && node dist/ng-codegen/generate.js ./src/example/test-controller.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "publish": "npm publish dist/ --access=public"
   },
   "repository": {
     "type": "git",
@@ -21,13 +22,13 @@
   "homepage": "https://github.com/Binarysearch/tssf#readme",
   "devDependencies": {
     "ts-loader": "^7.0.0",
-    "typescript": "^3.8.3",
     "webpack": "^4.42.1",
     "webpack-cli": "^3.3.11",
-    "@types/express": "^4.17.6",
     "webpack-node-externals": "^1.7.2"
   },
   "dependencies": {
+    "@types/express": "^4.17.6",
+    "typescript": "^3.8.3",
     "express": "^4.17.1",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^6.5.5"

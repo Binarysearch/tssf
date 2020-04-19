@@ -1,6 +1,2 @@
-import { TestController } from './example/test-controller';
-
-
-const controllers = [
-    TestController
-];
+export { Injectable, Injector, Type } from './injection/injector';
+export { Controller, Post } from './controller/controller';
