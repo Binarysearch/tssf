@@ -1,18 +1,27 @@
 # Typescript simplest framework
 
+## ¿Como se usa?
 
-```console
-git clone https://github.com/Binarysearch/tssf.git
+Clonar el proyecto ejemplo:
+```
+git clone https://github.com/Binarysearch/tssf-example.git
 ```
 
-```console
-cd tssf
+```
+cd tssf-example
 ```
 
-```console
+Instalart dependencias:
+```
 npm i
 ```
 
-```console
+Ejecutar el proyecto:
+```
 npm run start
+```
+
+Hacer peticion post:
+```
+curl -d '{"name": "Antonio"}' -H "Content-Type: application/json" -X POST http://localhost:3000/example
 ```
