@@ -5,12 +5,13 @@ const path = require('path');
 const file = process.argv[2];
 const outputDir = process.argv[3];
 
-if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir);
-} else {
+if (fs.existsSync(outputDir)) {
     deleteFolderRecursive(outputDir);
-    fs.mkdirSync(outputDir);
 }
+
+fs.mkdirSync(outputDir);
+fs.mkdirSync(outputDir+'/services');
+fs.mkdirSync(outputDir+'/dtos');
 
 interface MethodDef {
     name: string;
@@ -27,34 +28,26 @@ fs.readFile(file, { encoding: 'utf-8' }, function (err: any, data: string) {
         files.add(data);
         analizeImports(data, './src/', files);
 
-        const dtoNames: Set<string> = new Set();
+        const allDtoNames: Set<string> = new Set();
         const interfaces: Map<string, string> = new Map();
         files.forEach(f => {
+            const dtoNames: Set<string> = new Set();
             const result = analizeForControllers(f, dtoNames);
+            dtoNames.forEach(d => allDtoNames.add(d));
             analizeForInterfaces(f, interfaces);
             if (result) {
                 console.log('   ');
                 console.log('   ');
                 console.log('-----------------------------------------------');
                 console.log(result.content);
-                fs.writeFileSync(outputDir + '/services.ts', result.content);
+                fs.writeFileSync(outputDir + '/services/' + result.name.replace('Controller', '-service').toLowerCase() + '.ts', result.content);
                 console.log('-----------------------------------------------');
             }
         });
 
-        // Eliminamos los tipos basicos
-        [
-            'string',
-            'number',
-            'boolean'
-        ].forEach(e => {
-            dtoNames.delete(e);
-        });
-
-
-        dtoNames.forEach(dtoName => {
+        allDtoNames.forEach(dtoName => {
             console.log('-----------------------------------------------');
-            fs.writeFileSync(outputDir + '/dtos.ts', interfaces.get(dtoName));
+            fs.writeFileSync(outputDir + '/dtos/' + dtoName.toLowerCase() + '.ts', interfaces.get(dtoName));
             console.log(interfaces.get(dtoName));
             console.log('-----------------------------------------------');
         });
@@ -200,19 +193,23 @@ function analizeForControllers(fileContents: string, dtoNames: Set<string>): { c
             returnType: returnType
         });
 
-        dtoNames.add(paramType);
-        dtoNames.add(returnType);
+        if (!isPrimitive(paramType)) {
+            dtoNames.add(paramType);
+        }
+        if (!isPrimitive(returnType)) {
+            dtoNames.add(returnType);
+        }
 
         position = methodSignatureEnd;
     }
 
     return {
-        content: createAngularService(className, methods),
+        content: createAngularService(className, methods, dtoNames),
         name: className
     };
 }
 
-function createAngularService(className: string, methods: MethodDef[]): string {
+function createAngularService(className: string, methods: MethodDef[], dtoNames: Set<string>): string {
     const serviceName = className.includes('Controller') ? className.replace('Controller', 'Service') : className + 'Service';
 
     let methodsCode = methods.map(method => createMethodCode(method)).reduce((prev, curr) => {
@@ -222,9 +219,12 @@ function createAngularService(className: string, methods: MethodDef[]): string {
         `;
     }, '');
 
+    let dtoImports = createImports(Array.from(dtoNames));
+
 
 
     return `
+${dtoImports}
 import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
@@ -258,3 +258,20 @@ function deleteFolderRecursive(filePath: string) {
         fs.rmdirSync(filePath);
     }
 };
+
+function isPrimitive(dtoName: string): boolean {
+    return dtoName === 'string' ||
+    dtoName === 'number' ||
+    dtoName === 'boolean';
+
+}
+
+function createImports(dtoNames: string[]): string {
+    return dtoNames.map(name => {
+        const fileLocation = '../dtos/' + name.toLowerCase();
+        return `import { ${name} } from '${fileLocation}';`;
+    }).reduce((prev,curr)=>{
+        return `${prev}
+${curr}`;
+    }, '');
+}
