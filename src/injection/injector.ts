@@ -36,8 +36,11 @@ export class Injector {
     }
 
     static create<T>(type: Type<T>): T {
+        console.log('CREATE INJECTABLE', type);
         const dfs = (dep: Type<any>) => {
-
+            if (injectables.has(dep)) {
+                return;
+            }
             const depDeps = injectableDeps.get(dep);
             if (depDeps) {
                 depDeps.forEach(dfs);

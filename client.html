@@ -22,18 +22,22 @@
         }));
 
 
-        ws.send(JSON.stringify({
-            id: '1',
-            type: 'REMOVE_SUBSCRIPTION',
-            payload: {
-                channel: 'users'
-            }
-        }));
+        
 
 
     }
 
     ws.onmessage = (msg)=> {
         console.log(msg);
+        const message = JSON.parse(msg.data);
+        if (message.channel) {
+            ws.send(JSON.stringify({
+                id: '1',
+                type: 'REMOVE_SUBSCRIPTION',
+                payload: {
+                    channel: 'users'
+                }
+            }));
+        }
     }
 </script>

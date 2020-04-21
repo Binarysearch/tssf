@@ -1,6 +1,12 @@
 import * as WebSocket from 'ws';
 import { Injectable } from '../injection/injector';
 import { Session } from './ws-auth-service';
+import * as uuid from 'uuid';
+
+export interface Subscription {
+    channel: string;
+    wsConnection: WsConnection;
+}
 
 export interface WsConnection {
     session: Session;
@@ -31,7 +37,13 @@ export interface WsMessage {
 @Injectable
 export class WebsocketService {
 
+    id: string = uuid.v4();
+
+    // Mapa: id sesion -> WsConnection
     private connections: Map<string, WsConnection> = new Map();
+
+    // Mapa: Canal -> Lista de Subscripciones
+    private channelSubscriptions: Map<string, Subscription[]> = new Map();
 
     public onMessage(msg: string, session: Session) {
         try {
@@ -64,10 +76,34 @@ export class WebsocketService {
 
     private handleCreateSubscriptionMessage(session: Session, messageId: string, payload: SubscriptionRequestPayload) {
         console.log('handleCreateSubscriptionMessage', session, messageId, payload);
+        
+        const subscription: Subscription = {
+            channel: payload.channel,
+            wsConnection: <WsConnection>this.connections.get(session.id)
+        };
+
+        if (!this.channelSubscriptions.has(payload.channel)) {
+            this.channelSubscriptions.set(payload.channel, []);
+        }
+        this.channelSubscriptions.get(payload.channel)?.push(subscription);
+        console.log('channelSubscriptions', this.channelSubscriptions);
+        console.log('this', this);
     }
 
     private handleRemoveSubscriptionMessage(session: Session, messageId: string, payload: SubscriptionRequestPayload) {
         console.log('handleRemoveSubscriptionMessage', session, messageId, payload);
+
+        let subscriptionList = this.channelSubscriptions.get(payload.channel);
+        if (subscriptionList) {
+            subscriptionList = subscriptionList.filter(subscription => subscription.wsConnection.session.id !== session.id);
+            if (subscriptionList.length === 0) {
+                this.channelSubscriptions.delete(payload.channel);
+            } else {
+                this.channelSubscriptions.set(payload.channel, subscriptionList);
+            }
+        }
+        console.log('channelSubscriptions', this.channelSubscriptions);
+        console.log('this', this);
     }
     
     private handleRequestMessage(session: Session, messageId: string, payload: MessageRequestPayload) {
@@ -76,6 +112,12 @@ export class WebsocketService {
     
     private handleBadRequestMessage(session: Session, message: WsMessage) {
         console.log('handleBadRequestMessage', message);
+    }
+
+    public forEachSubscription(channel: string, callback: (subscription: Subscription) => void) {
+        console.log('channelSubscriptions', this.channelSubscriptions);
+        console.log('this', this);
+        this.channelSubscriptions.get(channel)?.forEach(callback);
     }
     
 }
