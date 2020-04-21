@@ -1,0 +1,39 @@
+<script>
+
+    const ws = new WebSocket('ws://localhost:3000/12345');
+
+    ws.onopen = ()=>{
+        console.log('open');
+        ws.send(JSON.stringify({
+            id: '1',
+            type: 'REQUEST',
+            payload: {
+                type: 'get-user',
+                payload: 1
+            }
+        }));
+
+        ws.send(JSON.stringify({
+            id: '1',
+            type: 'CREATE_SUBSCRIPTION',
+            payload: {
+                channel: 'users'
+            }
+        }));
+
+
+        ws.send(JSON.stringify({
+            id: '1',
+            type: 'REMOVE_SUBSCRIPTION',
+            payload: {
+                channel: 'users'
+            }
+        }));
+
+
+    }
+
+    ws.onmessage = (msg)=> {
+        console.log(msg);
+    }
+</script>
