@@ -71,6 +71,16 @@ export class WebsocketService {
     
     public onClose(code: number, reason: string, session: Session) {
         this.connections.delete(session.id);
+
+        // Eliminamos todas las subscripciones de la conexion
+        const channelSubscriptions = new Map();
+        this.channelSubscriptions.forEach((v, k) => {
+            v = v.filter(subscription => subscription.wsConnection.session.id !== session.id);
+            if (v.length > 0) {
+                channelSubscriptions.set(k, v);
+            }
+        });
+        this.channelSubscriptions = channelSubscriptions;
         console.log('Cliente desconectado.', session, code, reason);
     }
 
@@ -86,8 +96,6 @@ export class WebsocketService {
             this.channelSubscriptions.set(payload.channel, []);
         }
         this.channelSubscriptions.get(payload.channel)?.push(subscription);
-        console.log('channelSubscriptions', this.channelSubscriptions);
-        console.log('this', this);
     }
 
     private handleRemoveSubscriptionMessage(session: Session, messageId: string, payload: SubscriptionRequestPayload) {
@@ -102,8 +110,6 @@ export class WebsocketService {
                 this.channelSubscriptions.set(payload.channel, subscriptionList);
             }
         }
-        console.log('channelSubscriptions', this.channelSubscriptions);
-        console.log('this', this);
     }
     
     private handleRequestMessage(session: Session, messageId: string, payload: MessageRequestPayload) {
@@ -115,8 +121,6 @@ export class WebsocketService {
     }
 
     public forEachSubscription(channel: string, callback: (subscription: Subscription) => void) {
-        console.log('channelSubscriptions', this.channelSubscriptions);
-        console.log('this', this);
         this.channelSubscriptions.get(channel)?.forEach(callback);
     }
     
