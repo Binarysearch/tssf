@@ -10,7 +10,7 @@ import { Type, Injector, Injectable } from '../injection/injector';
 import { WebsocketService } from './websocket-service';
 import { WsAuthService, Session } from './ws-auth-service';
 
-const controllers: Map<Object, any> = new Map();
+export const controllers: Map<Object, any> = new Map();
 const websocketService = Injector.resolve(WebsocketService);
 
 const app: express.Application = express();
@@ -79,18 +79,6 @@ server.listen(3000, () => {
 
 
 export function Controller<U extends Type<any>>(constructor: U) {
-
-    const params: Type<any>[] = Reflect.getOwnMetadata('design:paramtypes', constructor);
-
-    if (!params || params.length === 0) {
-        controllers.set(constructor.prototype, new constructor());
-    } else if (params.length === 1) {
-        controllers.set(constructor.prototype, new constructor(Injector.resolve(params[0])));
-    } else {
-        controllers.set(constructor.prototype, new constructor(params.map(dep => Injector.resolve(dep))));
-    }
-
-
     return constructor;
 }
 

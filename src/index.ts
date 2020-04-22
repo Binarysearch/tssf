@@ -1,18 +1,30 @@
-import { Controller, Post } from './controller/controller';
-import { NotificationService } from './controller/notification-service';
+import { Application } from './application/application';
+import { TestController } from './example/test-controller';
+import { WsAuthService, Session } from './controller/ws-auth-service';
+import { Observable, of } from 'rxjs';
 
 export { Injectable, Injector, Type } from './injection/injector';
 export { Controller, Post } from './controller/controller';
 
 
-@Controller
-class Test {
+class MyAuthService extends WsAuthService {
 
-    constructor(private notificationService: NotificationService) {}
-
-    @Post('/hello')
-    public async a(): Promise<string> {
-        this.notificationService.sendNotification('users', { id: 1, prueba: 'Funciona' });
-        return 'Hello world';
+    public auth(authToken: string): Observable<Session> {
+        return of({
+            id: 'uuid.v4()',
+            authToken: authToken,
+            user: 2
+        });
     }
+    
 }
+
+@Application({
+    controllers: [
+        TestController
+    ],
+    providers: [
+        { provide: WsAuthService, useClass: MyAuthService }
+    ]
+})
+export class App { }
