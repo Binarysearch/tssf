@@ -6,10 +6,12 @@ export interface ApplicationConfig {
     providers?: Provider[];
 }
 
-export function Application(config: ApplicationConfig) {
-    return function Application<U extends Type<any>>(constructor: U) {
+export class Application {
 
-        // Creamos los controllers
+    constructor(config: ApplicationConfig) {
+
+        Injector.setProviders(config.providers);
+
         config.controllers.forEach((controller) => {
 
             const params: Type<any>[] = Reflect.getOwnMetadata('design:paramtypes', controller);
@@ -24,6 +26,6 @@ export function Application(config: ApplicationConfig) {
 
         });
 
-        return constructor;
     }
+    
 }

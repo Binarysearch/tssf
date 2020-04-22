@@ -19,12 +19,11 @@ class MyAuthService extends WsAuthService {
     
 }
 
-@Application({
+new Application({
     controllers: [
         TestController
     ],
     providers: [
         { provide: WsAuthService, useClass: MyAuthService }
     ]
-})
-export class App { }
+});

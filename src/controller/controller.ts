@@ -6,12 +6,12 @@ import * as WebSocket from 'ws';
 
 import { Observable } from 'rxjs';
 import { last } from 'rxjs/operators';
-import { Type, Injector, Injectable } from '../injection/injector';
+import { Type, Injector } from '../injection/injector';
 import { WebsocketService } from './websocket-service';
 import { WsAuthService, Session } from './ws-auth-service';
 
 export const controllers: Map<Object, any> = new Map();
-const websocketService = Injector.resolve(WebsocketService);
+
 
 const app: express.Application = express();
 app.use(express.json());
@@ -21,6 +21,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ noServer: true });
 
 wss.on('connection', function connection(ws: WebSocket, session: Session) {
+    const websocketService = Injector.resolve(WebsocketService);
     websocketService.onConnection(ws, session);
     ws.on('message', function message(msg) {
         if (typeof msg === 'string') {
