@@ -7,7 +7,7 @@ export interface ApplicationConfig {
 }
 
 export class Application {
-
+    
     constructor(config: ApplicationConfig) {
 
         Injector.setProviders(config.providers);
@@ -28,4 +28,7 @@ export class Application {
 
     }
     
+    public start(): void {
+
+    }
 }

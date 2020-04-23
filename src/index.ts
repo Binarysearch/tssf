@@ -3,8 +3,9 @@ import { TestController } from './example/test-controller';
 import { WsAuthService, Session } from './controller/ws-auth-service';
 import { Observable, of } from 'rxjs';
 
-export { Injectable, Injector, Type } from './injection/injector';
-export { Controller, Post } from './controller/controller';
+export { Type } from './injection/injector';
+export { Injectable } from './injection/injectable';
+export { Controller, Request as Post } from './controller/controller';
 
 
 class MyAuthService extends WsAuthService {
@@ -26,4 +27,4 @@ new Application({
     providers: [
         { provide: WsAuthService, useClass: MyAuthService }
     ]
-});
+}).start();

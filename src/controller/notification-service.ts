@@ -1,4 +1,4 @@
-import { Injectable } from '../injection/injector';
+import { Injectable } from '../injection/injectable';
 import { WebsocketService } from './websocket-service';
 
 export interface NotificationMessage {

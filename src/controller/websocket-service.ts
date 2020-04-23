@@ -1,5 +1,5 @@
 import * as WebSocket from 'ws';
-import { Injectable } from '../injection/injector';
+import { Injectable } from '../injection/injectable';
 import { Session } from './ws-auth-service';
 import * as uuid from 'uuid';
 

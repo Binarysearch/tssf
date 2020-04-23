@@ -6,9 +6,11 @@ import * as WebSocket from 'ws';
 
 import { Observable } from 'rxjs';
 import { last } from 'rxjs/operators';
-import { Type, Injector } from '../injection/injector';
+import { Injector } from '../injection/injector';
+import { Type } from '../injection/injector';
 import { WebsocketService } from './websocket-service';
 import { WsAuthService, Session } from './ws-auth-service';
+import { RequestManager, RequestMapping } from './request-manager';
 
 export const controllers: Map<Object, any> = new Map();
 
@@ -83,9 +85,16 @@ export function Controller<U extends Type<any>>(constructor: U) {
     return constructor;
 }
 
-
-export function Post(path: string) {
+export function Request(path: string) {
     return function (target: Object, key: string | symbol, descriptor: PropertyDescriptor) {
+
+        const requestMapping: RequestMapping = {
+            controller: target,
+            name: path,
+            method: descriptor.value
+        };
+
+        RequestManager.addRequestMapping(requestMapping);
 
         app.post(path, (req, res) => {
 

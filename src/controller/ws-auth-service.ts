@@ -1,4 +1,4 @@
-import { Injectable } from '../injection/injector';
+import { Injectable } from '../injection/injectable';
 import { Observable, of } from 'rxjs';
 import * as uuid from 'uuid';
 

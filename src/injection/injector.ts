@@ -7,22 +7,6 @@ export interface Provider {
     useClass: Type<any>;
 }
 
-export function Injectable<U extends Type<any>>(constructorFunction: U) {
-
-    const params: Type<any>[] = Reflect.getOwnMetadata('design:paramtypes', constructorFunction);
-
-    if (params) {
-        params.forEach(p => {
-            if (!p) {
-                console.error('Se ha detectado un ciclo de dependencias: ', constructorFunction);
-                throw new Error('Ciclo.');
-            }
-        });
-    }
-    
-    return constructorFunction;
-}
-
 export class Injector {
 
     private static injectables: Map<Type<any>, Object> = new Map();
@@ -45,7 +29,7 @@ export class Injector {
     }
 
     private static create<T>(type: Type<T>): T {
-        console.log('CREATE INJECTABLE', type);
+        
         const dfs = (dep: Type<any>) => {
             if (this.hasInjectable(dep)) {
                 return;
@@ -95,6 +79,7 @@ export class Injector {
     }
 
     private static setInjectable<T>(type: Type<T>, injectable: T): void {
+        console.log('CREATED INJECTABLE', type);
         this.injectables.set(this.translateType(type), injectable);
     }
 
