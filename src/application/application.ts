@@ -1,5 +1,6 @@
 import { Type, Injector, Provider } from "../injection/injector";
-import { controllers } from "../controller/controller";
+import { RequestManagerService } from "../controller/request-manager-service";
+import { RequestManager } from "../controller/request-manager";
 
 export interface ApplicationConfig {
     controllers: Type<any>[],
@@ -8,6 +9,8 @@ export interface ApplicationConfig {
 
 export class Application {
     
+    private controllers: Map<Object, any> = new Map();
+
     constructor(config: ApplicationConfig) {
 
         Injector.setProviders(config.providers);
@@ -17,11 +20,11 @@ export class Application {
             const params: Type<any>[] = Reflect.getOwnMetadata('design:paramtypes', controller);
 
             if (!params || params.length === 0) {
-                controllers.set(controller.prototype, new controller());
+                this.controllers.set(controller.prototype, new controller());
             } else if (params.length === 1) {
-                controllers.set(controller.prototype, new controller(Injector.resolve(params[0])));
+                this.controllers.set(controller.prototype, new controller(Injector.resolve(params[0])));
             } else {
-                controllers.set(controller.prototype, new controller(params.map(dep => Injector.resolve(dep))));
+                this.controllers.set(controller.prototype, new controller(params.map(dep => Injector.resolve(dep))));
             }
 
         });
@@ -29,6 +32,12 @@ export class Application {
     }
     
     public start(): void {
-
+        const requestManagerService: RequestManagerService = Injector.resolve(RequestManagerService);
+        RequestManager.getRequestMappings().forEach(m => {
+            const target = this.controllers.get(m.controller);
+            const method = m.method.bind(target);
+            requestManagerService.registerRequest(m.name, method);
+        });
+        
     }
 }

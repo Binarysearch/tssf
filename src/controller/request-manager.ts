@@ -8,18 +8,14 @@ export interface RequestMapping {
 
 export class RequestManager {
 
-    private static mappings: Map<string, RequestMapping> = new Map();
+    private static mappings: Set<RequestMapping> = new Set();
 
     public static addRequestMapping(requestMapping: RequestMapping) {
-        this.mappings.set(requestMapping.name, requestMapping);
+        this.mappings.add(requestMapping);
     }
 
-    public static getRequestMapping(name: string): RequestMapping {
-        const mapping = this.mappings.get(name);
-        if (mapping) {
-            return mapping;
-        }
-        throw new Error(`RequestMapping '${name}' not found`);
+    public static getRequestMappings(): RequestMapping[] {
+        return Array.from(this.mappings);
     }
 
 }
