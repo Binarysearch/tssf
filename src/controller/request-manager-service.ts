@@ -5,7 +5,7 @@ import * as http from 'http';
 import * as net from 'net';
 import * as WebSocket from 'ws';
 
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { last } from 'rxjs/operators';
 import { Injector } from '../injection/injector';
 import { WebsocketService } from './websocket-service';
@@ -16,7 +16,10 @@ export class RequestManagerService {
 
     private app: express.Application;
 
-    constructor() {
+    constructor(
+        private authService: WsAuthService,
+        private websocketService: WebsocketService
+    ) {
 
         this.app = express();
         this.app.use(express.json());
@@ -25,89 +28,100 @@ export class RequestManagerService {
         
         const wss = new WebSocket.Server({ noServer: true });
         
-        wss.on('connection', function connection(ws: WebSocket, session: Session) {
-            const websocketService = Injector.resolve(WebsocketService);
-            websocketService.onConnection(ws, session);
-            ws.on('message', function message(msg) {
+        wss.on('connection', (ws: WebSocket, session: Session) => {
+            this.websocketService.onConnection(ws, session);
+            ws.on('message', (msg) => {
                 if (typeof msg === 'string') {
-                    websocketService.onMessage(msg, session);
+                    this.websocketService.onMessage(msg, session);
                 } else {
                     console.log('Message format not supported yet');
                 }
             });
             ws.on('close', (code: number, reason: string) => {
-                websocketService.onClose(code, reason, session);
+                this.websocketService.onClose(code, reason, session);
             })
         });
         
         
-        server.on('upgrade', function upgrade(request: http.IncomingMessage, socket: net.Socket, upgradeHead: Buffer) {
+        server.on('upgrade', (request: http.IncomingMessage, socket: net.Socket, upgradeHead: Buffer) => {
         
-            authenticate(request, (err: Error | null, client?: Session) => {
-                if (err || !client) {
+            this.authenticate(request).subscribe(
+                (session) => {
+                    wss.handleUpgrade(request, socket, upgradeHead, (ws) => {
+                        wss.emit('connection', ws, session);
+                    });
+                },
+                (error) => {
                     socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
                     socket.destroy();
                     return;
                 }
-        
-                wss.handleUpgrade(request, socket, upgradeHead, function done(ws) {
-                    wss.emit('connection', ws, client);
-                });
-            });
+            );
+
         });
-        
-        function authenticate(request: http.IncomingMessage, callback: (err: Error | null, session?: Session) => void) {
-            const wsAuthService = Injector.resolve(WsAuthService);
-        
-            let token = undefined;
-        
-            const slashPos = request.url?.indexOf('/');
-            if (slashPos !== undefined) {
-                token = request.url?.slice(slashPos + 1);
-            }
-            
-            if (token) {
-                wsAuthService.auth(token).subscribe((session) => {
-                    callback(null, session);
-                }, (err)=>{
-                    console.error(err);
-                    callback(new Error('Token no valido'));
-                });
-            } else {
-                callback(new Error('Token no valido'));
-            }
-        }
-        
         
         server.listen(3000, () => {
             console.log(`Server started on port 3000 :)`);
         });
     }
 
+    private authenticate(request: http.IncomingMessage): Observable<Session> {
+        let token = undefined;
+        
+        const slashPos = request.url?.indexOf('/');
+        if (slashPos !== undefined) {
+            token = request.url?.slice(slashPos + 1);
+        }
+        
+        if (token) {
+            return this.authService.auth(token);
+        } else {
+            return throwError(new Error('Token no valido'));
+        }
+    }
+
+    private sendRequestResult(response: express.Response<any>, result: any){
+        if (result instanceof Promise) {
+
+            result.then((x: any) => {
+                response.send(x);
+            });
+
+        } else if (result instanceof Observable) {
+
+            result.pipe(last()).subscribe((x: any) => {
+                response.send(x);
+            });
+
+        } else {
+
+            response.send(JSON.stringify(result));
+
+        }
+    }
+
     public registerRequest(name: string, method: Function) {
-        this.app.post(name, (req, res) => {
+        this.app.post(name, (req, response) => {
 
-            const result = method(req.body);
-
-            if (result instanceof Promise) {
-
-                result.then((x: any) => {
-                    res.send(x);
-                });
-
-            } else if (result instanceof Observable) {
-
-                result.pipe(last()).subscribe((x: any) => {
-                    res.send(x);
-                });
-
+            const token = req.header('token');
+            if (token) {
+                this.authService.auth(token).subscribe(
+                    (session) => {
+                        const result = method(session, req.body);
+                        this.sendRequestResult(response, result);
+                    },
+                    (error) => {
+                        response.status(401);
+                        response.send(error);
+                    }
+                );
             } else {
-
-                res.send(JSON.stringify(result));
-
+                const result = method(null, req.body);
+                this.sendRequestResult(response, result);
             }
-
+            
         });
     }
     
+
 }

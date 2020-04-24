@@ -45,7 +45,7 @@ export class Injector {
                 } else if (depDeps.length === 1) {
                     this.setInjectable(dep, new dep(this.getInjectable(depDeps[0])));
                 } else {
-                    this.setInjectable(dep, new dep(depDeps.map(d => this.getInjectable(d))));
+                    this.setInjectable(dep, new dep(...depDeps.map(d => this.getInjectable(d))));
                 }
 
                 

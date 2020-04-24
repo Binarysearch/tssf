@@ -23,5 +23,5 @@ npm run start
 
 Hacer peticion post:
 ```
-curl -d '{"name": "Antonio"}' -H "Content-Type: application/json" -X POST http://localhost:3000/example
+curl -d '{"name": "Antonio"}' -H "Content-Type: application/json" -H "token:12345" -X POST http://localhost:3000/hello
 ```

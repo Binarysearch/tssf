@@ -24,7 +24,7 @@ export class Application {
             } else if (params.length === 1) {
                 this.controllers.set(controller.prototype, new controller(Injector.resolve(params[0])));
             } else {
-                this.controllers.set(controller.prototype, new controller(params.map(dep => Injector.resolve(dep))));
+                this.controllers.set(controller.prototype, new controller(...(params.map(dep => Injector.resolve(dep)) )));
             }
 
         });
