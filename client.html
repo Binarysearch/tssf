@@ -22,6 +22,18 @@
         }));
 
 
+        ws.send(JSON.stringify({
+            id: '1',
+            type: 'REQUEST',
+            payload: {
+                type: 'hello',
+                payload: {
+                    some: 'some'
+                }
+            }
+        }));
+
+
         
 
 

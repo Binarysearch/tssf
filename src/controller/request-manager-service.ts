@@ -80,48 +80,8 @@ export class RequestManagerService {
         }
     }
 
-    private sendRequestResult(response: express.Response<any>, result: any){
-        if (result instanceof Promise) {
-
-            result.then((x: any) => {
-                response.send(x);
-            });
-
-        } else if (result instanceof Observable) {
-
-            result.pipe(last()).subscribe((x: any) => {
-                response.send(x);
-            });
-
-        } else {
-
-            response.send(JSON.stringify(result));
-
-        }
-    }
-
-    public registerRequest(name: string, method: Function) {
-        this.app.post(name, (req, response) => {
-
-            const token = req.header('token');
-            if (token) {
-                this.authService.auth(token).subscribe(
-                    (session) => {
-                        const result = method(session, req.body);
-                        this.sendRequestResult(response, result);
-                    },
-                    (error) => {
-                        response.status(401);
-                        response.send(error);
-                    }
-                );
-            } else {
-                const result = method(null, req.body);
-                this.sendRequestResult(response, result);
-            }
-            
-        });
+    public registerRequest(name: string, method: (session: Session, body: any) => Observable<any>) {
+        this.websocketService.registerRequest(name, method);
     }
     
-
 }

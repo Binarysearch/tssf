@@ -2,6 +2,9 @@ import * as WebSocket from 'ws';
 import { Injectable } from '../injection/injectable';
 import { Session } from './ws-auth-service';
 import * as uuid from 'uuid';
+import { Observable } from 'rxjs';
+import { last } from 'rxjs/operators';
+import { WebsocketRequestProcessor } from './websocket-request-processor';
 
 export interface Subscription {
     channel: string;
@@ -44,6 +47,8 @@ export class WebsocketService {
 
     // Mapa: Canal -> Lista de Subscripciones
     private channelSubscriptions: Map<string, Subscription[]> = new Map();
+
+    private requestMappings: Map<string, (session: Session, body: any) => Observable<any>> = new Map();
 
     public onMessage(msg: string, session: Session) {
         try {
@@ -112,10 +117,31 @@ export class WebsocketService {
         }
     }
     
-    private handleRequestMessage(session: Session, messageId: string, payload: MessageRequestPayload) {
-        console.log('handleRequestMessage', session, messageId, payload);
+    private handleRequestMessage(session: Session, messageId: string, payload: MessageRequestPayload): void {
+        const method = this.requestMappings.get(payload.type);
+        if (method) {
+            const connection = this.connections.get(session.id);
+
+            if (connection) {
+                new WebsocketRequestProcessor(
+                    method,
+                    connection,
+                    messageId,
+                    payload.payload
+                ).process();
+            } else {
+                throw new Error('No hay conexion');
+            }
+            
+        } else {
+            this.handleMessageTypeNotFound(session, messageId);
+        }
     }
-    
+
+    private handleMessageTypeNotFound(session: Session, messageId: string) {
+        console.log('handleMessageTypeNotFound', messageId);
+    }
+
     private handleBadRequestMessage(session: Session, message: WsMessage) {
         console.log('handleBadRequestMessage', message);
     }
@@ -124,4 +150,7 @@ export class WebsocketService {
         this.channelSubscriptions.get(channel)?.forEach(callback);
     }
     
+    public registerRequest(name: string, method: (session: Session, body: any) => Observable<any>): void {
+        this.requestMappings.set(name, method);
+    }
 }

@@ -1,5 +1,12 @@
 import { Type } from '../injection/injector';
-import { RequestManager, RequestMapping } from './request-manager';
+
+export const REQUEST_MAPPINGS: Map<string, RequestMapping> = new Map();
+
+export interface RequestMapping {
+    controller: Object;
+    name: string;
+    method: Function;
+}
 
 export function Controller<U extends Type<any>>(constructor: U) {
     return constructor;
@@ -14,7 +21,7 @@ export function Request(name: string) {
             method: descriptor.value
         };
 
-        RequestManager.addRequestMapping(requestMapping);
+        REQUEST_MAPPINGS.set(name, requestMapping);
 
         return descriptor;
     };

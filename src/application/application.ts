@@ -1,6 +1,6 @@
 import { Type, Injector, Provider } from "../injection/injector";
 import { RequestManagerService } from "../controller/request-manager-service";
-import { RequestManager } from "../controller/request-manager";
+import { REQUEST_MAPPINGS } from "../controller/controller";
 
 export interface ApplicationConfig {
     controllers: Type<any>[],
@@ -33,7 +33,7 @@ export class Application {
     
     public start(): void {
         const requestManagerService: RequestManagerService = Injector.resolve(RequestManagerService);
-        RequestManager.getRequestMappings().forEach(m => {
+        REQUEST_MAPPINGS.forEach((m) => {
             const target = this.controllers.get(m.controller);
             const method = m.method.bind(target);
             requestManagerService.registerRequest(m.name, method);
