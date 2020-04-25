@@ -6,6 +6,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "start": "tsc && node ./dist/index.js",
+    "prueba": "tsc && node dist/ng-codegen/test-compiler.js src/index.ts",
     "build": "tsc",
     "gen-ng-code": "tsc && node dist/ng-codegen/generate.js ./src/example/test-controller.ts",
     "pre-publish": "node prepublish.js",
