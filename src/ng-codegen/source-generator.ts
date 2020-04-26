@@ -1,4 +1,7 @@
 import * as ts from "typescript";
+import { ServiceSourceGenerator } from "./service-source-generator";
+import { Service, ServiceMethod } from "./interfaces";
+import { camelCaseToDash } from "./util";
 const FS = require('fs');
 
 const PATH = require('path');
@@ -13,20 +16,6 @@ if (FS.existsSync(outputDir)) {
 FS.mkdirSync(outputDir);
 FS.mkdirSync(outputDir+'/services');
 FS.mkdirSync(outputDir+'/dtos');
-
-interface ServiceMethod {
-  name: string;
-  path: string;
-  bodyTypeName: string | null;
-  bodyParameterName: string | null;
-  returnTypeName: string;
-}
-
-interface Service {
-  name: string;
-  methods: ServiceMethod[];
-  dtos: Map<string, { name: string, location: string, id: string }>;
-}
 
 function compile(fileNames: string[], options: ts.CompilerOptions): void {
   let program = ts.createProgram(fileNames, options);
@@ -103,51 +92,11 @@ function writeDto(dto: { name: string; sourceCode: string; }) {
 }
 
 function writeService(service: Service) {
-  FS.writeFileSync(outputDir + '/services/' + camelCaseToDash(service.name) + '.ts', generateServiceCode(service));
-}
-
-function generateServiceCode(service: Service) {
-  let methodsCode = service.methods.map(method => createMethodCode(method)).reduce((prev, curr) => {
-    return `
-        ${prev}
-        ${curr}
-    `;
-}, '');
-
-  let dtoImports = createImportsCode(service.dtos);
-
-  return `
-${dtoImports}
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-  
-@Injectable({ providedIn: 'root' })
-export class ${service.name} {
-  ${methodsCode}
-}`;
-}
-
-function createImportsCode(dtos: Map<string, { name: string; location: string; id: string; }>): string {
-  let result = '';
-
-  dtos.forEach(dto => {
-    result = result + `
-import { ${dto.name} } from '../dtos/${camelCaseToDash(dto.name)}';`;
-  });
-
-  return result
+  const codeGen = new ServiceSourceGenerator(service);
+  FS.writeFileSync(outputDir + '/services/' + camelCaseToDash(service.name) + '.ts', codeGen.generate());
 }
 
 
-function createMethodCode(method: ServiceMethod): string {
-
-
-
-  return `
-  public ${method.name}(${method.bodyParameterName}: ${method.bodyTypeName}): Observable<${method.returnTypeName}> {
-      const path = '${method.path}';
-  }`;
-}
 
 function createService(cls: ts.ClassElement, file: ts.SourceFile): Service {
   const imports = getImports(file);
@@ -345,7 +294,3 @@ function deleteFolderRecursive(filePath: string) {
       FS.rmdirSync(filePath);
   }
 };
-
-function camelCaseToDash(str: string) {
-  return str.replace(/([a-zA-Z])(?=[A-Z])/g, '$1-').toLowerCase();
-}
