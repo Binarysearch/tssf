@@ -99,11 +99,11 @@ function generateFrontCode(services: Service[], dtos: Map<string, { name: string
 }
 
 function writeDto(dto: { name: string; sourceCode: string; }) {
-  FS.writeFileSync(outputDir + '/dtos/' + dto.name.toLowerCase() + '.ts', dto.sourceCode);
+  FS.writeFileSync(outputDir + '/dtos/' + camelCaseToDash(dto.name) + '.ts', dto.sourceCode);
 }
 
 function writeService(service: Service) {
-  FS.writeFileSync(outputDir + '/services/' + service.name.toLowerCase() + '.ts', generateServiceCode(service));
+  FS.writeFileSync(outputDir + '/services/' + camelCaseToDash(service.name) + '.ts', generateServiceCode(service));
 }
 
 function generateServiceCode(service: Service) {
@@ -132,7 +132,7 @@ function createImportsCode(dtos: Map<string, { name: string; location: string; i
 
   dtos.forEach(dto => {
     result = result + `
-import { ${dto.name} } from '../dtos/${dto.name.toLowerCase()}';`;
+import { ${dto.name} } from '../dtos/${camelCaseToDash(dto.name)}';`;
   });
 
   return result
@@ -345,3 +345,7 @@ function deleteFolderRecursive(filePath: string) {
       FS.rmdirSync(filePath);
   }
 };
+
+function camelCaseToDash(str: string) {
+  return str.replace(/([a-zA-Z])(?=[A-Z])/g, '$1-').toLowerCase();
+}
