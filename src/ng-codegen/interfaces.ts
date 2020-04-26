@@ -13,3 +13,8 @@ export interface Service {
     methods: ServiceMethod[];
     dtos: Map<string, { name: string, location: string, id: string }>;
 }
+
+export interface Dto {
+    name: string;
+    sourceCode: string;
+}
