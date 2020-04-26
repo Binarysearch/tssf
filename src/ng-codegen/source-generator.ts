@@ -1,8 +1,18 @@
 import * as ts from "typescript";
+const FS = require('fs');
 
-interface Dto {
-  name: string;
+const PATH = require('path');
+
+const file = process.argv[2];
+const outputDir = process.argv[3];
+
+if (FS.existsSync(outputDir)) {
+    deleteFolderRecursive(outputDir);
 }
+
+FS.mkdirSync(outputDir);
+FS.mkdirSync(outputDir+'/services');
+FS.mkdirSync(outputDir+'/dtos');
 
 interface ServiceMethod {
   name: string;
@@ -15,6 +25,7 @@ interface ServiceMethod {
 interface Service {
   name: string;
   methods: ServiceMethod[];
+  dtos: Map<string, { name: string, location: string, id: string }>;
 }
 
 function compile(fileNames: string[], options: ts.CompilerOptions): void {
@@ -53,14 +64,94 @@ function generateServices(program: ts.Program) {
   const classes = getControllerClasses(program);
 
   const services: Service[] = classes.map(c => {
-    return createService(c);
+    return createService(c.class, c.file);
   });
 
-  console.log(JSON.stringify(services, null, 2));
+  const dtos: Map<string, { name: string, sourceCode: string }> = new Map();
+
+  services.forEach(s => {
+    s.dtos.forEach(dto => {
+      const source = program.getSourceFile(dto.location+'.ts');
+      source?.forEachChild(node => {
+        if (node.kind === ts.SyntaxKind.InterfaceDeclaration) {
+          const name = (<ts.InterfaceDeclaration>node).name.text.toString();
+          if (name === dto.name) {
+            const id = dto.id;
+            const dtoSourceCode = source.text.slice(node.pos, node.end);
+            dtos.set(id, {name: dto.name, sourceCode: dtoSourceCode });
+          }
+        }
+      })
+    });
+  });
   
+  generateFrontCode(services, dtos);
 }
 
-function createService(cls: ts.ClassElement): Service {
+function generateFrontCode(services: Service[], dtos: Map<string, { name: string, sourceCode: string }>){
+  services.forEach(s => {
+    writeService(s);
+  });
+  dtos.forEach(dto => {
+    writeDto(dto);
+  });
+
+}
+
+function writeDto(dto: { name: string; sourceCode: string; }) {
+  FS.writeFileSync(outputDir + '/dtos/' + dto.name.toLowerCase() + '.ts', dto.sourceCode);
+}
+
+function writeService(service: Service) {
+  FS.writeFileSync(outputDir + '/services/' + service.name.toLowerCase() + '.ts', generateServiceCode(service));
+}
+
+function generateServiceCode(service: Service) {
+  let methodsCode = service.methods.map(method => createMethodCode(method)).reduce((prev, curr) => {
+    return `
+        ${prev}
+        ${curr}
+    `;
+}, '');
+
+  let dtoImports = createImportsCode(service.dtos);
+
+  return `
+${dtoImports}
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+  
+@Injectable({ providedIn: 'root' })
+export class ${service.name} {
+  ${methodsCode}
+}`;
+}
+
+function createImportsCode(dtos: Map<string, { name: string; location: string; id: string; }>): string {
+  let result = '';
+
+  dtos.forEach(dto => {
+    result = result + `
+import { ${dto.name} } from '../dtos/${dto.name.toLowerCase()}';`;
+  });
+
+  return result
+}
+
+
+function createMethodCode(method: ServiceMethod): string {
+
+
+
+  return `
+  public ${method.name}(${method.bodyParameterName}: ${method.bodyTypeName}): Observable<${method.returnTypeName}> {
+      const path = '${method.path}';
+  }`;
+}
+
+function createService(cls: ts.ClassElement, file: ts.SourceFile): Service {
+  const imports = getImports(file);
+  
   const controllerName = (<ts.Identifier>cls.name).escapedText.toString();
   const serviceName = getServiceName(controllerName);
   
@@ -79,9 +170,27 @@ function createService(cls: ts.ClassElement): Service {
       return createServiceMethod(method);
     });
 
+  const dtos: Map<string, { name: string, location: string, id: string }> = new Map();
+
+  serviceMethods.forEach(m => {
+    if (m.bodyTypeName) {
+      const bodyDtoName = m.bodyTypeName;
+      const bodyDtoLocation = PATH.join(file.fileName, '..', imports.get(m.bodyTypeName)?.path);
+      const bodyDtoId = bodyDtoName + ':' + bodyDtoLocation;
+      const bodyDto = { name: m.bodyTypeName, location: bodyDtoLocation, id: bodyDtoId };
+      dtos.set(bodyDtoId, bodyDto);
+    }
+    const returnDtoName = m.returnTypeName;
+    const returnDtoLocation = PATH.join(file.fileName, '..', imports.get(m.returnTypeName)?.path);
+    const returnDtoId = returnDtoName + ':' + returnDtoLocation;
+    const returnDto = { name: returnDtoName, location: returnDtoLocation, id: returnDtoId };
+    dtos.set(returnDtoId, returnDto);
+  });
+
   return {
     name: serviceName,
-    methods: serviceMethods
+    methods: serviceMethods,
+    dtos: dtos
   }
 }
 
@@ -160,20 +269,57 @@ function getServiceName(controllerName: string): string {
   }
 }
 
-function getControllerClasses(program: ts.Program): ts.ClassElement[] {
-  const result: ts.ClassElement[] = [];
-
+function getControllerClasses(program: ts.Program): { class: ts.ClassElement, file: ts.SourceFile }[] {
+  const result: { class: ts.ClassElement, file: ts.SourceFile }[] = [];
 
   program.getSourceFiles().forEach(file => {
     file.forEachChild(node => {
       if (node.kind === ts.SyntaxKind.ClassDeclaration) {
         if (isController(<ts.ClassElement>node)) {
-          result.push(<ts.ClassElement>node);
+          result.push({ class: <ts.ClassElement>node, file: file});
         }
       }
     });
   });
 
+
+  return result;
+}
+
+function getInterfaces(program: ts.Program): ts.InterfaceDeclaration[] {
+  const result: ts.InterfaceDeclaration[] = [];
+
+
+  program.getSourceFiles().forEach(file => {
+    file.forEachChild(node => {
+      if (node.kind === ts.SyntaxKind.InterfaceDeclaration) {
+        result.push(<ts.InterfaceDeclaration>node);
+      }
+    });
+  });
+
+
+  return result;
+}
+
+function getImports(file: ts.SourceFile): Map<string, { name: string, path: string }> {
+  const result: Map<string, { name: string, path: string }> = new Map();
+
+  file.forEachChild(node => {
+    if (node.kind === ts.SyntaxKind.ImportDeclaration) {
+      const importExpression = <ts.ImportDeclaration>node;
+      if (importExpression.importClause?.namedBindings?.kind === ts.SyntaxKind.NamedImports) {
+        const path = (<ts.StringLiteral>importExpression.moduleSpecifier).text;
+        importExpression.importClause?.namedBindings.elements.forEach(e => {
+          const name = e.name.escapedText.toString();
+          result.set(name, {
+            name: name,
+            path: path
+          });
+        });
+      }
+    }
+  });
 
   return result;
 }
@@ -185,3 +331,17 @@ function isController(node: ts.ClassElement): boolean {
 function isRequestProcessor(node: ts.Node): boolean {
   return node.decorators?.some(d => (<any>d.expression).expression.escapedText === 'Request') === true;
 }
+
+function deleteFolderRecursive(filePath: string) {
+  if (FS.existsSync(filePath)) {
+    FS.readdirSync(filePath).forEach((file: string) => {
+          const curPath = PATH.join(filePath, file);
+          if (FS.lstatSync(curPath).isDirectory()) {
+              deleteFolderRecursive(curPath);
+          } else {
+            FS.unlinkSync(curPath);
+          }
+      });
+      FS.rmdirSync(filePath);
+  }
+};
