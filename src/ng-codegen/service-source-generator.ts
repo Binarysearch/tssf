@@ -1,46 +1,50 @@
-import { Service, ServiceMethod } from "./interfaces";
-import { camelCaseToDash } from "./util";
+import { Service, ServiceMethod, DtoImport } from "./interfaces";
+import { camelCaseToDash, format } from "./util";
+import { METHOD_TEMPLATE } from "./templates/method";
+import { SERVICE_TEMPLATE } from "./templates/service";
+
 
 export class ServiceSourceGenerator {
 
     constructor(private service: Service) { }
 
     public generate(): string {
-        let methodsCode = this.service.methods.map(method => this.createMethodCode(method)).reduce((prev, curr) => {
-            return `
-                ${prev}
-                ${curr}
-            `;
-        }, '');
+        const methodsCode = this.generateMethodsCode();
 
-        let dtoImports = this.createImportsCode(this.service.dtos);
+        const dtoImports = this.createImportsCode(this.service.importedDtos);
 
-        return `
-${dtoImports}
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
-    
-@Injectable({ providedIn: 'root' })
-export class ${this.service.name} {
-    ${methodsCode}
-}
-        `;
+        return format(
+            SERVICE_TEMPLATE,
+            dtoImports,
+            this.service.name,
+            methodsCode
+        );
+    }
+
+    private generateMethodsCode() {
+        return this.service.methods
+            .map(method => this.createMethodCode(method))
+            .reduce((prev, curr) => `${prev}${curr}`, '');
     }
 
     private createMethodCode(method: ServiceMethod): string {
-        return `
-    public ${method.name}(${method.bodyParameterName}: ${method.bodyTypeName}): Observable<${method.returnTypeName}> {
-        const path = '${method.path}';
-    }
-        `;
+        return format(
+            METHOD_TEMPLATE, 
+            method.name, 
+            method.bodyParameterName, 
+            method.bodyTypeName, 
+            method.returnTypeName,
+            method.returnTypeName,
+            method.path,
+            method.bodyParameterName
+        );
     }
 
-    private createImportsCode(dtos: Map<string, { name: string; location: string; id: string; }>): string {
+    private createImportsCode(dtos: Map<string, DtoImport>): string {
         let result = '';
 
         dtos.forEach(dto => {
-            result = result + `
-import { ${dto.name} } from '../dtos/${camelCaseToDash(dto.name)}';`;
+            result = result + `import { ${dto.name} } from '../dtos/${camelCaseToDash(dto.name)}';\n`;
         });
 
         return result

@@ -25,7 +25,7 @@ export class ProgramAnalizer {
 
     private extractDtos() {
         this.services.forEach(s => {
-            s.dtos.forEach(dto => {
+            s.importedDtos.forEach(dto => {
                 const source = this.program.getSourceFile(dto.location + '.ts');
                 source?.forEachChild(node => {
                     if (node.kind === ts.SyntaxKind.InterfaceDeclaration) {
@@ -111,7 +111,7 @@ export class ProgramAnalizer {
         return {
             name: serviceName,
             methods: serviceMethods,
-            dtos: dtos
+            importedDtos: dtos
         }
     }
 
