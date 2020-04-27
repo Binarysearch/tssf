@@ -74,7 +74,14 @@ export class RequestManagerService {
         }
         
         if (token) {
-            return this.authService.auth(token);
+            const parsedToken = JSON.parse(decodeURIComponent(token));
+            if (parsedToken.username && parsedToken.password) {
+                return this.authService.login(parsedToken.username, parsedToken.password);
+            } else if (parsedToken.token) {
+                return this.authService.authWithToken(parsedToken.token);
+            } else {
+                return throwError(new Error('Token no valido'));
+            }
         } else {
             return throwError(new Error('Token no valido'));
         }

@@ -7,14 +7,27 @@ export { Type } from './injection/injector';
 export { Injectable } from './injection/injectable';
 export { Controller, Request as Post } from './controller/controller';
 
+import * as uuid from 'uuid';
 
 class MyAuthService extends WsAuthService {
 
-    public auth(authToken: string): Observable<Session> {
+    public authWithToken(authToken: string): Observable<Session> {
         if (authToken === '12345') {
             return of({
-                id: 'uuid.v4()',
+                id: uuid.v4(),
                 authToken: authToken,
+                user: 2
+            });
+        } else {
+            return throwError('Invalid token');
+        }
+    }
+    
+    public login(username: string, password: string): Observable<Session> {
+        if (password === '12345') {
+            return of({
+                id: uuid.v4(),
+                authToken: uuid.v4(),
                 user: 2
             });
         } else {
