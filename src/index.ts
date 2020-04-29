@@ -24,7 +24,7 @@ class MyAuthService extends WsAuthService {
     }
     
     public login(username: string, password: string): Observable<Session> {
-        if (password === '12345') {
+        if (username === 'admin' && password === '12345') {
             return of({
                 id: uuid.v4(),
                 authToken: uuid.v4(),

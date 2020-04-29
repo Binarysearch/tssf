@@ -69,6 +69,10 @@ export class WebsocketService {
     }
 
     public onConnection(ws: WebSocket, session: Session) {
+        ws.send(JSON.stringify({
+            sessionId: session.id,
+            authToken: session.authToken
+        }));
         const connection = { session, ws };
         this.connections.set(session.id, connection);
         console.log('Cliente conectado.', session);

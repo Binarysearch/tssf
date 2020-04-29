@@ -11,6 +11,10 @@ import { Injector } from '../injection/injector';
 import { WebsocketService } from './websocket-service';
 import { WsAuthService, Session } from './ws-auth-service';
 
+enum WsCloseCode {
+    INVALID_CREDENTIALS = 4001
+}
+
 @Injectable
 export class RequestManagerService {
 
@@ -52,9 +56,9 @@ export class RequestManagerService {
                     });
                 },
                 (error) => {
-                    socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
-                    socket.destroy();
-                    return;
+                    wss.handleUpgrade(request, socket, upgradeHead, (ws) => {
+                        ws.close(WsCloseCode.INVALID_CREDENTIALS);
+                    });
                 }
             );
 

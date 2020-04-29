@@ -11,6 +11,12 @@ export class TestController {
 
     constructor(private notificationService: NotificationService) {}
 
+    @Request('echo-message')
+    public echo(session: Session, body: string): Observable<string> {
+        return of(body);
+    }
+
+
     @Request('hello')
     public hello(session: Session, body: ExapleBodyDto): Observable<ExampleResult> {
         console.log('session', session);

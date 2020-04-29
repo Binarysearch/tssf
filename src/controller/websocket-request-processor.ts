@@ -3,6 +3,10 @@ import { Observable } from "rxjs";
 import { WsConnection } from "./websocket-service";
 import { last } from "rxjs/operators";
 
+export interface ResponseMessage {
+    id: string;
+    payload: any;
+}
 
 export class WebsocketRequestProcessor {
 
@@ -11,7 +15,7 @@ export class WebsocketRequestProcessor {
         private connection: WsConnection,
         private requestId: string,
         private requestPayload: any
-    ) {}
+    ) { }
 
     private get session(): Session {
         return this.connection.session;
@@ -32,15 +36,20 @@ export class WebsocketRequestProcessor {
             this.handleUncaughtError();
         }
     }
-    
+
     private sendResult(result: any): void {
         console.log('sendResult', result);
+        const message: ResponseMessage = {
+            id: this.requestId,
+            payload: result
+        }
+        this.connection.ws.send(JSON.stringify(message));
     }
 
     private handleErrorResult(error: any): void {
         console.log('handleErrorResult', error);
     }
-    
+
     private handleUncaughtError(): void {
         console.log('handleUncaughtError', this);
     }
