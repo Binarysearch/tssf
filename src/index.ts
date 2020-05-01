@@ -23,11 +23,11 @@ class MyAuthService extends WsAuthService {
         }
     }
     
-    public login(username: string, password: string): Observable<Session> {
+    public login(username: string, password: string, authToken: string): Observable<Session> {
         if (username === 'admin' && password === '12345') {
             return of({
                 id: uuid.v4(),
-                authToken: uuid.v4(),
+                authToken: authToken,
                 user: 2
             });
         } else {

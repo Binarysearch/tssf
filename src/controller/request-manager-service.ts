@@ -57,6 +57,7 @@ export class RequestManagerService {
                 },
                 (error) => {
                     wss.handleUpgrade(request, socket, upgradeHead, (ws) => {
+                        console.log('CLOSED');
                         ws.close(WsCloseCode.INVALID_CREDENTIALS);
                     });
                 }
@@ -64,7 +65,7 @@ export class RequestManagerService {
 
         });
         
-        server.listen(3000, () => {
+        server.listen(3001, () => {
             console.log(`Server started on port 3000 :)`);
         });
     }
@@ -80,7 +81,7 @@ export class RequestManagerService {
         if (token) {
             const parsedToken = JSON.parse(decodeURIComponent(token));
             if (parsedToken.username && parsedToken.password) {
-                return this.authService.login(parsedToken.username, parsedToken.password);
+                return this.authService.login(parsedToken.username, parsedToken.password, parsedToken.authToken);
             } else if (parsedToken.token) {
                 return this.authService.authWithToken(parsedToken.token);
             } else {

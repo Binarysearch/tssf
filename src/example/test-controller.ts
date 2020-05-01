@@ -13,7 +13,12 @@ export class TestController {
 
     @Request('echo-message')
     public echo(session: Session, body: string): Observable<string> {
-        return of(body);
+        return of(body + '-2');
+    }
+
+    @Request('get-animals')
+    public getFruits(session: Session, body: string): Observable<string> {
+        return of('animals');
     }
 
 

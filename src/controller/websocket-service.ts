@@ -37,6 +37,19 @@ export interface WsMessage {
     payload: any;
 }
 
+export enum ErrorResponseMessageType {
+    MESSAGE_TYPE_NOT_FOUND = 'MESSAGE_TYPE_NOT_FOUND'
+}
+
+export interface ErrorResponseMessage {
+    id: string;
+    error: {
+        type: ErrorResponseMessageType;
+        requestType: string;
+        description: string;
+    }
+}
+
 @Injectable
 export class WebsocketService {
 
@@ -138,12 +151,22 @@ export class WebsocketService {
             }
             
         } else {
-            this.handleMessageTypeNotFound(session, messageId);
+            this.handleMessageTypeNotFound(session, messageId, payload);
         }
     }
 
-    private handleMessageTypeNotFound(session: Session, messageId: string) {
-        console.log('handleMessageTypeNotFound', messageId);
+    private handleMessageTypeNotFound(session: Session, messageId: string, payload: MessageRequestPayload) {
+        const connection = this.connections.get(session.id);
+        const errorMessage: ErrorResponseMessage = {
+            id: messageId,
+            error: {
+                type: ErrorResponseMessageType.MESSAGE_TYPE_NOT_FOUND,
+                requestType: payload.type,
+                description: `Message type '${payload.type}' does not exist.`
+            }
+        };
+        connection?.ws.send(JSON.stringify(errorMessage));
+        console.log(errorMessage.error);
     }
 
     private handleBadRequestMessage(session: Session, message: WsMessage) {
