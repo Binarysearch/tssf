@@ -41,6 +41,10 @@ new Application({
     controllers: [
         TestController
     ],
+    channels: [
+        'valid-channel',
+        'users-channel',
+    ],
     providers: [
         { provide: WsAuthService, useClass: MyAuthService }
     ]

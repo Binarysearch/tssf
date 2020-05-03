@@ -66,7 +66,7 @@ export class RequestManagerService {
         });
         
         server.listen(3001, () => {
-            console.log(`Server started on port 3000 :)`);
+            console.log(`Server started on port 3001 :)`);
         });
     }
 
@@ -94,6 +94,10 @@ export class RequestManagerService {
 
     public registerRequest(name: string, method: (session: Session, body: any) => Observable<any>) {
         this.websocketService.registerRequest(name, method);
+    }
+
+    public registerChannel(name: string) {
+        this.websocketService.registerChannel(name);
     }
     
 }

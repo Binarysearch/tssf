@@ -2,7 +2,7 @@ import { Injectable } from '../injection/injectable';
 import { WebsocketService } from './websocket-service';
 
 export interface NotificationMessage {
-    channel: string;
+    id: string;
     payload: any;
 }
 
@@ -15,7 +15,7 @@ export class NotificationService {
         console.log('sendNotification', channel);
         this.websocketService.forEachSubscription(channel, s => {
             const message: NotificationMessage = {
-                channel: channel,
+                id: s.id,
                 payload: payload
             }
             s.wsConnection.ws.send(JSON.stringify(message));

@@ -4,6 +4,7 @@ import { REQUEST_MAPPINGS } from "../controller/controller";
 
 export interface ApplicationConfig {
     controllers: Type<any>[],
+    channels: string[],
     providers?: Provider[];
 }
 
@@ -11,7 +12,7 @@ export class Application {
     
     private controllers: Map<Object, any> = new Map();
 
-    constructor(config: ApplicationConfig) {
+    constructor(private config: ApplicationConfig) {
 
         Injector.setProviders(config.providers);
 
@@ -37,6 +38,9 @@ export class Application {
             const target = this.controllers.get(m.controller);
             const method = m.method.bind(target);
             requestManagerService.registerRequest(m.name, method);
+        });
+        this.config.channels.forEach((channel) => {
+            requestManagerService.registerChannel(channel);
         });
         
     }

@@ -3,10 +3,11 @@ import { Injectable } from '../injection/injectable';
 import { Session } from './ws-auth-service';
 import * as uuid from 'uuid';
 import { Observable } from 'rxjs';
-import { last } from 'rxjs/operators';
 import { WebsocketRequestProcessor } from './websocket-request-processor';
+import { WsMessage, WsMessageType, SubscriptionRequestPayload, CreateSubscriptionResponse, SubscriptionClosePayload, MessageRequestPayload, ErrorResponseMessage, ErrorResponseMessageType } from './interfaces/client-messages';
 
 export interface Subscription {
+    id: string;
     channel: string;
     wsConnection: WsConnection;
 }
@@ -14,40 +15,6 @@ export interface Subscription {
 export interface WsConnection {
     session: Session;
     ws: WebSocket;
-}
-
-export enum WsMessageType {
-    CREATE_SUBSCRIPTION = 'CREATE_SUBSCRIPTION',
-    REMOVE_SUBSCRIPTION = 'REMOVE_SUBSCRIPTION',
-    REQUEST = 'REQUEST',
-}
-
-export interface SubscriptionRequestPayload {
-    channel: string;
-}
-
-export interface MessageRequestPayload {
-    type: string;
-    payload: any;
-}
-
-export interface WsMessage {
-    id: string;
-    type: WsMessageType;
-    payload: any;
-}
-
-export enum ErrorResponseMessageType {
-    MESSAGE_TYPE_NOT_FOUND = 'MESSAGE_TYPE_NOT_FOUND'
-}
-
-export interface ErrorResponseMessage {
-    id: string;
-    error: {
-        type: ErrorResponseMessageType;
-        requestType: string;
-        description: string;
-    }
 }
 
 @Injectable
@@ -98,9 +65,7 @@ export class WebsocketService {
         const channelSubscriptions = new Map();
         this.channelSubscriptions.forEach((v, k) => {
             v = v.filter(subscription => subscription.wsConnection.session.id !== session.id);
-            if (v.length > 0) {
-                channelSubscriptions.set(k, v);
-            }
+            channelSubscriptions.set(k, v);
         });
         this.channelSubscriptions = channelSubscriptions;
         console.log('Cliente desconectado.', session, code, reason);
@@ -109,28 +74,36 @@ export class WebsocketService {
     private handleCreateSubscriptionMessage(session: Session, messageId: string, payload: SubscriptionRequestPayload) {
         console.log('handleCreateSubscriptionMessage', session, messageId, payload);
         
+        if (!this.channelSubscriptions.has(payload.channel)) {
+            this.handleChannelNotFound(session, messageId, payload);
+        }
+
+        const subscriptionId = messageId;
+
         const subscription: Subscription = {
+            id: subscriptionId,
             channel: payload.channel,
             wsConnection: <WsConnection>this.connections.get(session.id)
         };
 
-        if (!this.channelSubscriptions.has(payload.channel)) {
-            this.channelSubscriptions.set(payload.channel, []);
-        }
         this.channelSubscriptions.get(payload.channel)?.push(subscription);
+
+        const connection = this.connections.get(session.id);
+
+        const message: CreateSubscriptionResponse = {
+            id: messageId,
+            payload: { subscriptionId: subscriptionId }
+        }
+        connection?.ws.send(JSON.stringify(message));
     }
 
-    private handleRemoveSubscriptionMessage(session: Session, messageId: string, payload: SubscriptionRequestPayload) {
+    private handleRemoveSubscriptionMessage(session: Session, messageId: string, payload: SubscriptionClosePayload) {
         console.log('handleRemoveSubscriptionMessage', session, messageId, payload);
 
         let subscriptionList = this.channelSubscriptions.get(payload.channel);
         if (subscriptionList) {
-            subscriptionList = subscriptionList.filter(subscription => subscription.wsConnection.session.id !== session.id);
-            if (subscriptionList.length === 0) {
-                this.channelSubscriptions.delete(payload.channel);
-            } else {
-                this.channelSubscriptions.set(payload.channel, subscriptionList);
-            }
+            subscriptionList = subscriptionList.filter(subscription => subscription.id !== payload.subscriptionId);
+            this.channelSubscriptions.set(payload.channel, subscriptionList);
         }
     }
     
@@ -153,6 +126,20 @@ export class WebsocketService {
         } else {
             this.handleMessageTypeNotFound(session, messageId, payload);
         }
+    }
+
+    private handleChannelNotFound(session: Session, messageId: string, payload: SubscriptionRequestPayload) {
+        const connection = this.connections.get(session.id);
+        const errorMessage: ErrorResponseMessage = {
+            id: messageId,
+            error: {
+                type: ErrorResponseMessageType.CHANNEL_NAME_NOT_FOUND,
+                channel: payload.channel,
+                description: `Channel '${payload.channel}' does not exist.`
+            }
+        };
+        connection?.ws.send(JSON.stringify(errorMessage));
+        console.log(errorMessage.error);
     }
 
     private handleMessageTypeNotFound(session: Session, messageId: string, payload: MessageRequestPayload) {
@@ -180,4 +167,9 @@ export class WebsocketService {
     public registerRequest(name: string, method: (session: Session, body: any) => Observable<any>): void {
         this.requestMappings.set(name, method);
     }
+    
+    public registerChannel(name: string): void {
+        this.channelSubscriptions.set(name, []);
+    }
+
 }

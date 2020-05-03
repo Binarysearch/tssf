@@ -1,53 +1,40 @@
 import { Controller, Request } from "../controller/controller";
-import { NotificationService } from "../controller/notification-service";
 import { Session } from "../controller/ws-auth-service";
-import { Observable, of, throwError } from "rxjs";
-import { ExampleResult, ExampleResult2 } from "./example-result";
-import { ExapleBodyDto, ExapleBodyDto2 } from "./example-body-dto";
+import { Observable, of } from "rxjs";
+import { NotificationService } from "../controller/notification-service";
 
 
 @Controller
 export class TestController {
 
-    constructor(private notificationService: NotificationService) {}
+    constructor(
+        private notification: NotificationService
+    ) {}
 
     @Request('echo-message')
     public echo(session: Session, body: string): Observable<string> {
-        return of(body + '-2');
+        return of(body + '-1');
     }
 
-    @Request('get-animals')
+    @Request('delayed-echo-message')
+    public echo2(session: Session, body: string): Observable<string> {
+        return new Observable(obs=>{
+            setTimeout(() => {
+                obs.next(body + '-1');
+                obs.complete();
+            }, 2000);
+        });
+    }
+    
+    @Request('send-something-for-valid-channel')
+    public send(session: Session, body: string): Observable<string> {
+        this.notification.sendNotification('valid-channel', 'hola');
+        return of(body + '-1');
+    }
+
+    @Request('get-fruits')
     public getFruits(session: Session, body: string): Observable<string> {
-        return of('animals');
+        return of('fruits');
     }
-
-
-    @Request('hello')
-    public hello(session: Session, body: ExapleBodyDto): Observable<ExampleResult> {
-        console.log('session', session);
-        this.notificationService.sendNotification('users', { id: 1, prueba: 'Funciona' });
-        return of({ something: 'body -> ' + body.something });
-    }
-
-
-    @Request('hello3')
-    public hello3(session: Session, body: ExapleBodyDto2): Observable<ExampleResult2> {
-        console.log('session', session);
-        this.notificationService.sendNotification('users', { id: 1, prueba: 'Funciona' });
-        return of({ something: 'body -> ' + body.something });
-    }
-}
-
-
-@Controller
-export class TestController2 {
-
-    constructor(private notificationService: NotificationService) {}
-
-    @Request('hello2')
-    public hello2(session: Session, body: ExapleBodyDto2): Observable<ExampleResult2> {
-        console.log('session', session);
-        this.notificationService.sendNotification('users', { id: 1, prueba: 'Funciona' });
-        return of({ something: 'body -> ' + body.something });
-    }
+    
 }
