@@ -1,12 +1,8 @@
+import 'reflect-metadata';
 import { Injectable } from '../injection/injectable';
 import { Observable, of } from 'rxjs';
 import * as uuid from 'uuid';
-
-export interface Session {
-    id: string;
-    authToken: string;
-    user: number;
-}
+import { Session } from './interfaces/session';
 
 @Injectable
 export class WsAuthService {

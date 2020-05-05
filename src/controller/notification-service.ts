@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Injectable } from '../injection/injectable';
 import { WebsocketService } from './websocket-service';
 

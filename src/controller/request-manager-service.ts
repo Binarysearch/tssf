@@ -6,10 +6,9 @@ import * as net from 'net';
 import * as WebSocket from 'ws';
 
 import { Observable, throwError } from 'rxjs';
-import { last } from 'rxjs/operators';
-import { Injector } from '../injection/injector';
 import { WebsocketService } from './websocket-service';
-import { WsAuthService, Session } from './ws-auth-service';
+import { WsAuthService } from './ws-auth-service';
+import { Session } from "./interfaces/session";
 
 enum WsCloseCode {
     INVALID_CREDENTIALS = 4001
@@ -18,13 +17,46 @@ enum WsCloseCode {
 @Injectable
 export class RequestManagerService {
 
-    private app: express.Application;
+    private app?: express.Application;
 
     constructor(
         private authService: WsAuthService,
         private websocketService: WebsocketService
     ) {
 
+    }
+
+    private authenticate(request: http.IncomingMessage): Observable<Session> {
+        let token = undefined;
+        
+        const slashPos = request.url?.indexOf('/');
+        if (slashPos !== undefined) {
+            token = request.url?.slice(slashPos + 1);
+        }
+        
+        if (token) {
+            const parsedToken = JSON.parse(decodeURIComponent(token));
+            if (parsedToken.username && parsedToken.password) {
+                return this.authService.login(parsedToken.username, parsedToken.password, parsedToken.authToken);
+            } else if (parsedToken.token) {
+                return this.authService.authWithToken(parsedToken.token);
+            } else {
+                return throwError(new Error('Token no valido'));
+            }
+        } else {
+            return throwError(new Error('Token no valido'));
+        }
+    }
+
+    public registerRequest(name: string, method: (session: Session, body: any) => Observable<any>) {
+        this.websocketService.registerRequest(name, method);
+    }
+
+    public registerChannel(name: string) {
+        this.websocketService.registerChannel(name);
+    }
+    
+    public start(port: number): void {
         this.app = express();
         this.app.use(express.json());
         
@@ -65,39 +97,8 @@ export class RequestManagerService {
 
         });
         
-        server.listen(3001, () => {
-            console.log(`Server started on port 3001 :)`);
+        server.listen(port, () => {
+            console.log(`Server started on port ${port} :)`);
         });
     }
-
-    private authenticate(request: http.IncomingMessage): Observable<Session> {
-        let token = undefined;
-        
-        const slashPos = request.url?.indexOf('/');
-        if (slashPos !== undefined) {
-            token = request.url?.slice(slashPos + 1);
-        }
-        
-        if (token) {
-            const parsedToken = JSON.parse(decodeURIComponent(token));
-            if (parsedToken.username && parsedToken.password) {
-                return this.authService.login(parsedToken.username, parsedToken.password, parsedToken.authToken);
-            } else if (parsedToken.token) {
-                return this.authService.authWithToken(parsedToken.token);
-            } else {
-                return throwError(new Error('Token no valido'));
-            }
-        } else {
-            return throwError(new Error('Token no valido'));
-        }
-    }
-
-    public registerRequest(name: string, method: (session: Session, body: any) => Observable<any>) {
-        this.websocketService.registerRequest(name, method);
-    }
-
-    public registerChannel(name: string) {
-        this.websocketService.registerChannel(name);
-    }
-    
 }

@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Type } from '../injection/injector';
 
 export const REQUEST_MAPPINGS: Map<string, RequestMapping> = new Map();

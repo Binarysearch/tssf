@@ -1,47 +1,27 @@
 
 
-export enum WsMessageType {
+export enum ClientMessageType {
     CREATE_SUBSCRIPTION = 'CREATE_SUBSCRIPTION',
     REMOVE_SUBSCRIPTION = 'REMOVE_SUBSCRIPTION',
     REQUEST = 'REQUEST',
 }
 
-export interface SubscriptionRequestPayload {
+export interface CreateSubscriptionPayload {
     channel: string;
 }
 
-export interface SubscriptionClosePayload {
+export interface CloseSubscriptionPayload {
     subscriptionId: string;
     channel: string;
 }
 
-export interface MessageRequestPayload {
+export interface RequestPayload {
     type: string;
     payload: any;
 }
 
-export interface WsMessage {
+export interface ClientMessage {
     id: string;
-    type: WsMessageType;
-    payload: any;
-}
-
-export enum ErrorResponseMessageType {
-    MESSAGE_TYPE_NOT_FOUND = 'MESSAGE_TYPE_NOT_FOUND',
-    CHANNEL_NAME_NOT_FOUND = 'CHANNEL_NAME_NOT_FOUND'
-}
-
-export interface ErrorResponseMessage {
-    id: string;
-    error: {
-        type: ErrorResponseMessageType;
-        requestType?: string;
-        channel?: string;
-        description: string;
-    }
-}
-
-export interface CreateSubscriptionResponse {
-    id: string;
-    payload: { subscriptionId: string; };
+    type: ClientMessageType;
+    payload: CreateSubscriptionPayload | CloseSubscriptionPayload | RequestPayload;
 }

@@ -1,12 +1,8 @@
-import { Session } from "./ws-auth-service";
 import { Observable } from "rxjs";
 import { WsConnection } from "./websocket-service";
 import { last } from "rxjs/operators";
-
-export interface ResponseMessage {
-    id: string;
-    payload: any;
-}
+import { ResponseMessage } from "./interfaces/server-messages";
+import { Session } from "./interfaces/session";
 
 export class WebsocketRequestProcessor {
 

@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { Type, Injector, Provider } from "../injection/injector";
 import { RequestManagerService } from "../controller/request-manager-service";
 import { REQUEST_MAPPINGS } from "../controller/controller";
@@ -32,7 +33,7 @@ export class Application {
 
     }
     
-    public start(): void {
+    public start(port: number): void {
         const requestManagerService: RequestManagerService = Injector.resolve(RequestManagerService);
         REQUEST_MAPPINGS.forEach((m) => {
             const target = this.controllers.get(m.controller);
@@ -42,6 +43,6 @@ export class Application {
         this.config.channels.forEach((channel) => {
             requestManagerService.registerChannel(channel);
         });
-        
+        requestManagerService.start(port);
     }
 }

@@ -1,10 +1,12 @@
 import * as WebSocket from 'ws';
 import { Injectable } from '../injection/injectable';
-import { Session } from './ws-auth-service';
 import * as uuid from 'uuid';
 import { Observable } from 'rxjs';
 import { WebsocketRequestProcessor } from './websocket-request-processor';
-import { WsMessage, WsMessageType, SubscriptionRequestPayload, CreateSubscriptionResponse, SubscriptionClosePayload, MessageRequestPayload, ErrorResponseMessage, ErrorResponseMessageType } from './interfaces/client-messages';
+import { ClientMessage, ClientMessageType, CreateSubscriptionPayload, CloseSubscriptionPayload, RequestPayload } from './interfaces/client-messages';
+import { CreateSubscriptionResponse, ErrorResponseMessage, ErrorResponseMessageType } from './interfaces/server-messages';
+import { SecurityService } from './security-service';
+import { Session } from './interfaces/session';
 
 export interface Subscription {
     id: string;
@@ -30,15 +32,19 @@ export class WebsocketService {
 
     private requestMappings: Map<string, (session: Session, body: any) => Observable<any>> = new Map();
 
+    constructor(
+        private security: SecurityService
+    ) {}
+
     public onMessage(msg: string, session: Session) {
         try {
-            const message: WsMessage = JSON.parse(msg);
-            if (message.type === WsMessageType.REQUEST) {
-                this.handleRequestMessage(session, message.id, message.payload);
-            } else if (message.type === WsMessageType.CREATE_SUBSCRIPTION) {
-                this.handleCreateSubscriptionMessage(session, message.id, message.payload);
-            } else if (message.type === WsMessageType.REMOVE_SUBSCRIPTION) {
-                this.handleRemoveSubscriptionMessage(session, message.id, message.payload);
+            const message: ClientMessage = JSON.parse(msg);
+            if (message.type === ClientMessageType.REQUEST) {
+                this.handleRequestMessage(session, message.id, (<RequestPayload>message.payload));
+            } else if (message.type === ClientMessageType.CREATE_SUBSCRIPTION) {
+                this.handleCreateSubscriptionMessage(session, message.id, (<CreateSubscriptionPayload>message.payload));
+            } else if (message.type === ClientMessageType.REMOVE_SUBSCRIPTION) {
+                this.handleRemoveSubscriptionMessage(session, message.id, (<CloseSubscriptionPayload>message.payload));
             } else {
                 this.handleBadRequestMessage(session, message);
             }
@@ -71,7 +77,7 @@ export class WebsocketService {
         console.log('Cliente desconectado.', session, code, reason);
     }
 
-    private handleCreateSubscriptionMessage(session: Session, messageId: string, payload: SubscriptionRequestPayload) {
+    private handleCreateSubscriptionMessage(session: Session, messageId: string, payload: CreateSubscriptionPayload) {
         console.log('handleCreateSubscriptionMessage', session, messageId, payload);
         
         if (!this.channelSubscriptions.has(payload.channel)) {
@@ -97,7 +103,7 @@ export class WebsocketService {
         connection?.ws.send(JSON.stringify(message));
     }
 
-    private handleRemoveSubscriptionMessage(session: Session, messageId: string, payload: SubscriptionClosePayload) {
+    private handleRemoveSubscriptionMessage(session: Session, messageId: string, payload: CloseSubscriptionPayload) {
         console.log('handleRemoveSubscriptionMessage', session, messageId, payload);
 
         let subscriptionList = this.channelSubscriptions.get(payload.channel);
@@ -107,7 +113,12 @@ export class WebsocketService {
         }
     }
     
-    private handleRequestMessage(session: Session, messageId: string, payload: MessageRequestPayload): void {
+    private handleRequestMessage(session: Session, messageId: string, payload: RequestPayload): void {
+        if (!this.security.canMakeRequest(session, payload.type)) {
+            this.handleSecurityCheckNotPassed(session, messageId, payload);
+            return;
+        }
+
         const method = this.requestMappings.get(payload.type);
         if (method) {
             const connection = this.connections.get(session.id);
@@ -128,7 +139,7 @@ export class WebsocketService {
         }
     }
 
-    private handleChannelNotFound(session: Session, messageId: string, payload: SubscriptionRequestPayload) {
+    private handleChannelNotFound(session: Session, messageId: string, payload: CreateSubscriptionPayload) {
         const connection = this.connections.get(session.id);
         const errorMessage: ErrorResponseMessage = {
             id: messageId,
@@ -142,7 +153,20 @@ export class WebsocketService {
         console.log(errorMessage.error);
     }
 
-    private handleMessageTypeNotFound(session: Session, messageId: string, payload: MessageRequestPayload) {
+    private handleSecurityCheckNotPassed(session: Session, messageId: string, payload: RequestPayload) {
+        const connection = this.connections.get(session.id);
+        const errorMessage: ErrorResponseMessage = {
+            id: messageId,
+            error: {
+                type: ErrorResponseMessageType.UNAUTHORIZED,
+                requestType: payload.type,
+                description: `User cannot perform request type '${payload.type}'.`
+            }
+        };
+        connection?.ws.send(JSON.stringify(errorMessage));
+    }
+
+    private handleMessageTypeNotFound(session: Session, messageId: string, payload: RequestPayload) {
         const connection = this.connections.get(session.id);
         const errorMessage: ErrorResponseMessage = {
             id: messageId,
@@ -156,7 +180,7 @@ export class WebsocketService {
         console.log(errorMessage.error);
     }
 
-    private handleBadRequestMessage(session: Session, message: WsMessage) {
+    private handleBadRequestMessage(session: Session, message: ClientMessage) {
         console.log('handleBadRequestMessage', message);
     }
 
