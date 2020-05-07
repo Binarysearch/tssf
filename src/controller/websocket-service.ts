@@ -1,5 +1,5 @@
 import * as WebSocket from 'ws';
-import { Injectable } from '../injection/injectable';
+import { Injectable } from '@piros/ioc';
 import * as uuid from 'uuid';
 import { Observable } from 'rxjs';
 import { WebsocketRequestProcessor } from './websocket-request-processor';
@@ -92,7 +92,9 @@ export class WebsocketService {
             wsConnection: <WsConnection>this.connections.get(session.id)
         };
 
-        this.channelSubscriptions.get(payload.channel)?.push(subscription);
+        if (this.channelSubscriptions.get(payload.channel)) {
+            this.channelSubscriptions.get(payload.channel).push(subscription);
+        }
 
         const connection = this.connections.get(session.id);
 
@@ -100,7 +102,7 @@ export class WebsocketService {
             id: messageId,
             payload: { subscriptionId: subscriptionId }
         }
-        connection?.ws.send(JSON.stringify(message));
+        connection.ws.send(JSON.stringify(message));
     }
 
     private handleRemoveSubscriptionMessage(session: Session, messageId: string, payload: CloseSubscriptionPayload) {
@@ -149,12 +151,15 @@ export class WebsocketService {
                 description: `Channel '${payload.channel}' does not exist.`
             }
         };
-        connection?.ws.send(JSON.stringify(errorMessage));
+        connection.ws.send(JSON.stringify(errorMessage));
         console.log(errorMessage.error);
     }
 
     private handleSecurityCheckNotPassed(session: Session, messageId: string, payload: RequestPayload) {
         const connection = this.connections.get(session.id);
+        if (!connection) {
+            return;
+        }
         const errorMessage: ErrorResponseMessage = {
             id: messageId,
             error: {
@@ -163,11 +168,14 @@ export class WebsocketService {
                 description: `User cannot perform request type '${payload.type}'.`
             }
         };
-        connection?.ws.send(JSON.stringify(errorMessage));
+        connection.ws.send(JSON.stringify(errorMessage));
     }
 
     private handleMessageTypeNotFound(session: Session, messageId: string, payload: RequestPayload) {
         const connection = this.connections.get(session.id);
+        if (!connection) {
+            return;
+        }
         const errorMessage: ErrorResponseMessage = {
             id: messageId,
             error: {
@@ -176,7 +184,7 @@ export class WebsocketService {
                 description: `Message type '${payload.type}' does not exist.`
             }
         };
-        connection?.ws.send(JSON.stringify(errorMessage));
+        connection.ws.send(JSON.stringify(errorMessage));
         console.log(errorMessage.error);
     }
 
@@ -185,7 +193,11 @@ export class WebsocketService {
     }
 
     public forEachSubscription(channel: string, callback: (subscription: Subscription) => void) {
-        this.channelSubscriptions.get(channel)?.forEach(callback);
+        const channels = this.channelSubscriptions.get(channel);
+        if (!channels) {
+            return;
+        }
+        channels.forEach(callback);
     }
     
     public registerRequest(name: string, method: (session: Session, body: any) => Observable<any>): void {

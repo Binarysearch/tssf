@@ -1,5 +1,3 @@
-export { Type } from './injection/injector';
-export { Injectable } from './injection/injectable';
 export { Controller, Request } from './controller/controller';
 export { SecurityService } from './controller/security-service';
 export { WsAuthService } from './controller/ws-auth-service';

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Injectable } from '../injection/injectable';
+import { Injectable } from '@piros/ioc';
 import { WebsocketService } from './websocket-service';
 
 export interface NotificationMessage {

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Injectable } from '../injection/injectable';
+import { Injectable } from '@piros/ioc';
 import { Observable, of } from 'rxjs';
 import * as uuid from 'uuid';
 import { Session } from './interfaces/session';

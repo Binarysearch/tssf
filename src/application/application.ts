@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Type, Injector, Provider } from "../injection/injector";
+import { Type, Injector, Provider } from "@piros/ioc";
 import { RequestManagerService } from "../controller/request-manager-service";
 import { REQUEST_MAPPINGS } from "../controller/controller";
 

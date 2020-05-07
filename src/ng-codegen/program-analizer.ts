@@ -27,16 +27,18 @@ export class ProgramAnalizer {
         this.services.forEach(s => {
             s.importedDtos.forEach(dto => {
                 const source = this.program.getSourceFile(dto.location + '.ts');
-                source?.forEachChild(node => {
-                    if (node.kind === ts.SyntaxKind.InterfaceDeclaration) {
-                        const name = (<ts.InterfaceDeclaration>node).name.text.toString();
-                        if (name === dto.name) {
-                            const id = dto.id;
-                            const dtoSourceCode = source.text.slice(node.pos, node.end);
-                            this.dtos.set(id, { name: dto.name, sourceCode: dtoSourceCode });
+                if (source) {
+                    source.forEachChild(node => {
+                        if (node.kind === ts.SyntaxKind.InterfaceDeclaration) {
+                            const name = (<ts.InterfaceDeclaration>node).name.text.toString();
+                            if (name === dto.name) {
+                                const id = dto.id;
+                                const dtoSourceCode = source.text.slice(node.pos, node.end);
+                                this.dtos.set(id, { name: dto.name, sourceCode: dtoSourceCode });
+                            }
                         }
-                    }
-                })
+                    });
+                }
             });
         });
     }
@@ -67,7 +69,10 @@ export class ProgramAnalizer {
     }
 
     private isController(node: ts.ClassElement): boolean {
-        return node.decorators?.some(d => (<ts.Identifier>d.expression).escapedText === 'Controller') === true;
+        if (!node.decorators) {
+            return false;
+        }
+        return node.decorators.some(d => (<ts.Identifier>d.expression).escapedText === 'Controller') === true;
     }
 
     private createService(cls: ts.ClassElement, file: ts.SourceFile): Service {
@@ -95,17 +100,23 @@ export class ProgramAnalizer {
 
         serviceMethods.forEach(m => {
             if (m.bodyTypeName) {
-                const bodyDtoName = m.bodyTypeName;
-                const bodyDtoLocation = PATH.join(file.fileName, '..', imports.get(m.bodyTypeName)?.path);
-                const bodyDtoId = bodyDtoName + ':' + bodyDtoLocation;
-                const bodyDto = { name: m.bodyTypeName, location: bodyDtoLocation, id: bodyDtoId };
-                dtos.set(bodyDtoId, bodyDto);
+                const impor = imports.get(m.bodyTypeName);
+                if (impor) {
+                    const bodyDtoName = m.bodyTypeName;
+                    const bodyDtoLocation = PATH.join(file.fileName, '..', impor.path);
+                    const bodyDtoId = bodyDtoName + ':' + bodyDtoLocation;
+                    const bodyDto = { name: m.bodyTypeName, location: bodyDtoLocation, id: bodyDtoId };
+                    dtos.set(bodyDtoId, bodyDto);
+                }
             }
             const returnDtoName = m.returnTypeName;
-            const returnDtoLocation = PATH.join(file.fileName, '..', imports.get(m.returnTypeName)?.path);
-            const returnDtoId = returnDtoName + ':' + returnDtoLocation;
-            const returnDto = { name: returnDtoName, location: returnDtoLocation, id: returnDtoId };
-            dtos.set(returnDtoId, returnDto);
+            const impor = imports.get(m.returnTypeName);
+            if (impor) {
+                const returnDtoLocation = PATH.join(file.fileName, '..', impor.path);
+                const returnDtoId = returnDtoName + ':' + returnDtoLocation;
+                const returnDto = { name: returnDtoName, location: returnDtoLocation, id: returnDtoId };
+                dtos.set(returnDtoId, returnDto);
+            }
         });
 
         return {
@@ -172,7 +183,10 @@ export class ProgramAnalizer {
     }
 
     private extractRequestProcessorPath(method: ts.MethodDeclaration): string {
-        const decorator = method.decorators?.find(d => (<any>d.expression).expression.escapedText === 'Request');
+        if (!method.decorators) {
+            throw "El metodo no tiene decorator 'Request'";
+        }
+        const decorator = method.decorators.find(d => (<any>d.expression).expression.escapedText === 'Request');
         if (!decorator) {
             throw "El metodo no tiene decorator 'Request'";
         }
@@ -197,15 +211,19 @@ export class ProgramAnalizer {
         file.forEachChild(node => {
             if (node.kind === ts.SyntaxKind.ImportDeclaration) {
                 const importExpression = <ts.ImportDeclaration>node;
-                if (importExpression.importClause?.namedBindings?.kind === ts.SyntaxKind.NamedImports) {
-                    const path = (<ts.StringLiteral>importExpression.moduleSpecifier).text;
-                    importExpression.importClause?.namedBindings.elements.forEach(e => {
-                        const name = e.name.escapedText.toString();
-                        result.set(name, {
-                            name: name,
-                            path: path
-                        });
-                    });
+                if (importExpression.importClause && importExpression.importClause.namedBindings) {
+                    if (importExpression.importClause.namedBindings.kind === ts.SyntaxKind.NamedImports) {
+                        const path = (<ts.StringLiteral>importExpression.moduleSpecifier).text;
+                        if (importExpression.importClause) {
+                            importExpression.importClause.namedBindings.elements.forEach(e => {
+                                const name = e.name.escapedText.toString();
+                                result.set(name, {
+                                    name: name,
+                                    path: path
+                                });
+                            });
+                        }
+                    }
                 }
             }
         });
@@ -214,6 +232,9 @@ export class ProgramAnalizer {
     }
 
     private isRequestProcessor(node: ts.Node): boolean {
-        return node.decorators?.some(d => (<any>d.expression).expression.escapedText === 'Request') === true;
+        if (!node.decorators) {
+            return false;
+        }
+        return node.decorators.some(d => (<any>d.expression).expression.escapedText === 'Request') === true;
     }
 }

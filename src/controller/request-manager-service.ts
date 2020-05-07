@@ -1,4 +1,4 @@
-import { Injectable } from "../injection/injectable";
+import { Injectable } from "@piros/ioc";
 
 import express = require('express');
 import * as http from 'http';
@@ -29,9 +29,11 @@ export class RequestManagerService {
     private authenticate(request: http.IncomingMessage): Observable<Session> {
         let token = undefined;
         
-        const slashPos = request.url?.indexOf('/');
-        if (slashPos !== undefined) {
-            token = request.url?.slice(slashPos + 1);
+        if (request.url) {
+            const slashPos = request.url.indexOf('/');
+            if (slashPos !== undefined) {
+                token = request.url.slice(slashPos + 1);
+            }
         }
         
         if (token) {

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Type } from '../injection/injector';
+import { Type } from '@piros/ioc';
 
 export const REQUEST_MAPPINGS: Map<string, RequestMapping> = new Map();
 
