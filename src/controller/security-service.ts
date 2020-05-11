@@ -10,5 +10,9 @@ export class SecurityService {
     public canMakeRequest(session: Session, requestType: string): boolean {
         return true;
     }
+
+    public canListenChannel(session: Session, channelName: string): boolean {
+        return true;
+    }
     
 }
