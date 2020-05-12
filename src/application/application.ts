@@ -1,21 +1,18 @@
 import 'reflect-metadata';
-import { Type, Injector, Provider } from "@piros/ioc";
+import { Type, Injector } from "@piros/ioc";
 import { RequestManagerService } from "../controller/request-manager-service";
 import { REQUEST_MAPPINGS } from "../controller/controller";
 
 export interface ApplicationConfig {
     controllers: Type<any>[],
-    channels: string[],
-    providers?: Provider[];
+    channels: string[]
 }
 
 export class Application {
     
     private controllers: Map<Object, any> = new Map();
 
-    constructor(private config: ApplicationConfig) {
-
-        Injector.setProviders(config.providers);
+    constructor(private config: ApplicationConfig, private injector: Injector) {
 
         config.controllers.forEach((controller) => {
 
@@ -24,9 +21,9 @@ export class Application {
             if (!params || params.length === 0) {
                 this.controllers.set(controller.prototype, new controller());
             } else if (params.length === 1) {
-                this.controllers.set(controller.prototype, new controller(Injector.resolve(params[0])));
+                this.controllers.set(controller.prototype, new controller(injector.resolve(params[0])));
             } else {
-                this.controllers.set(controller.prototype, new controller(...(params.map(dep => Injector.resolve(dep)) )));
+                this.controllers.set(controller.prototype, new controller(...(params.map(dep => this.injector.resolve(dep)) )));
             }
 
         });
@@ -34,7 +31,7 @@ export class Application {
     }
     
     public start(port: number): void {
-        const requestManagerService: RequestManagerService = Injector.resolve(RequestManagerService);
+        const requestManagerService: RequestManagerService = this.injector.resolve(RequestManagerService);
         REQUEST_MAPPINGS.forEach((m) => {
             const target = this.controllers.get(m.controller);
             const method = m.method.bind(target);
