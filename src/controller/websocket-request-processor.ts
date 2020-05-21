@@ -1,7 +1,7 @@
 import { Observable } from "rxjs";
 import { WsConnection } from "./websocket-service";
 import { last } from "rxjs/operators";
-import { ResponseMessage } from "./interfaces/server-messages";
+import { ResponseMessage, ErrorResponseMessage, ErrorResponseMessageType } from "./interfaces/server-messages";
 import { Session } from "./interfaces/session";
 
 export class WebsocketRequestProcessor {
@@ -44,6 +44,11 @@ export class WebsocketRequestProcessor {
 
     private handleErrorResult(error: any): void {
         console.log('handleErrorResult', error);
+        const message: ErrorResponseMessage = {
+            id: this.requestId,
+            error: error
+        }
+        this.connection.ws.send(JSON.stringify(message));
     }
 
     private handleUncaughtError(): void {
