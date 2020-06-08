@@ -18,6 +18,7 @@ enum WsCloseCode {
 export class RequestManagerService {
 
     private app?: express.Application;
+    private postMappings: Map<string, (body: any) => Observable<any>> = new Map();
 
     constructor(
         private authService: WsAuthService,
@@ -54,15 +55,26 @@ export class RequestManagerService {
         this.websocketService.registerRequest(name, method);
     }
 
+    public registerPost(name: string, method: (body: any) => Observable<any>) {
+        this.postMappings.set(name, method);
+    }
+
     public registerChannel(name: string) {
         this.websocketService.registerChannel(name);
     }
     
     public start(port: number): void {
         this.app = express();
-        this.app.use(express.json());
+        this.app.use(express.json({ strict: false }));
+        this.app.use(function(req, res, next) {
+            res.header("Access-Control-Allow-Origin", "*");
+            res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+            next();
+        });
         
         const server = http.createServer(this.app);
+
+        this.registerAppPostRequestMappings();
         
         const wss = new WebSocket.Server({ noServer: true });
         
@@ -101,6 +113,22 @@ export class RequestManagerService {
         
         server.listen(port, () => {
             console.log(`Server started on port ${port} :)`);
+        });
+    }
+
+    private registerAppPostRequestMappings() {
+        this.postMappings.forEach((method, path) => {
+            this.app.post('/' + path, (req, res) => {
+                method(req.body).subscribe(
+                    (result) => {
+                        res.json(result);
+                    },
+                    (err) => {
+                        res.status(500),
+                        res.json(err);
+                    }
+                );
+            });
         });
     }
 }

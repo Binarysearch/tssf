@@ -1,4 +1,4 @@
-export { Controller, Request } from './controller/controller';
+export { Controller, Request, Post } from './controller/controller';
 export { SecurityService } from './controller/security-service';
 export { WsAuthService } from './controller/ws-auth-service';
 export { Application, ApplicationConfig } from './application/application';

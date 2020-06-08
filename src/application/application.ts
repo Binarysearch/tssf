@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { Type, Injector } from "@piros/ioc";
 import { RequestManagerService } from "../controller/request-manager-service";
-import { REQUEST_MAPPINGS } from "../controller/controller";
+import { REQUEST_MAPPINGS, POST_MAPPINGS } from "../controller/controller";
 
 export interface ApplicationConfig {
     controllers: Type<any>[],
@@ -36,6 +36,11 @@ export class Application {
             const target = this.controllers.get(m.controller);
             const method = m.method.bind(target);
             requestManagerService.registerRequest(m.name, method);
+        });
+        POST_MAPPINGS.forEach((m) => {
+            const target = this.controllers.get(m.controller);
+            const method = m.method.bind(target);
+            requestManagerService.registerPost(m.path, method);
         });
         this.config.channels.forEach((channel) => {
             requestManagerService.registerChannel(channel);
