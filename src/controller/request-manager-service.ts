@@ -124,7 +124,12 @@ export class RequestManagerService {
                         res.json(result);
                     },
                     (err) => {
-                        res.status(500),
+                        if (err.httpStatusCode) {
+                            res.status(err.httpStatusCode);
+                        } else {
+                            res.status(500);
+                        }
+                        
                         res.json(err);
                     }
                 );
