@@ -1,8 +1,9 @@
 import 'reflect-metadata';
 import { Injectable } from '@piros/ioc';
-import { WebsocketService } from './websocket-service';
+import { WebsocketService, Subscription } from './websocket-service';
 import { SecurityService } from './security-service';
 import { Logger } from './logger';
+import { Observable } from 'rxjs';
 
 export interface NotificationMessage {
     id: string;
@@ -29,6 +30,14 @@ export class NotificationService {
                 s.wsConnection.ws.send(JSON.stringify(message));
             }
         });
+    }
+
+    public getSubscriptionCreations(): Observable<Subscription> {
+        return this.websocketService.getSubscriptionCreations();
+    }
+
+    public getSubscriptionDeletions(): Observable<Subscription> {
+        return this.websocketService.getSubscriptionDeletions();
     }
 
 }

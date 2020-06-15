@@ -1,7 +1,7 @@
 import * as WebSocket from 'ws';
 import { Injectable } from '@piros/ioc';
 import * as uuid from 'uuid';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { WebsocketRequestProcessor } from './websocket-request-processor';
 import { ClientMessage, ClientMessageType, CreateSubscriptionPayload, CloseSubscriptionPayload, RequestPayload } from './interfaces/client-messages';
 import { CreateSubscriptionResponse, ErrorResponseMessage, ErrorResponseMessageType } from './interfaces/server-messages';
@@ -31,6 +31,9 @@ export class WebsocketService {
     private channelSubscriptions: Map<string, Subscription[]> = new Map();
 
     private requestMappings: Map<string, (session: Session, body: any) => Observable<any>> = new Map();
+
+    private subscriptionCreations: Subject<Subscription> = new Subject();
+    private subscriptionDeletions: Subject<Subscription> = new Subject();
 
     constructor(
         private security: SecurityService
@@ -70,7 +73,12 @@ export class WebsocketService {
         // Eliminamos todas las subscripciones de la conexion
         const channelSubscriptions = new Map();
         this.channelSubscriptions.forEach((v, k) => {
-            v = v.filter(subscription => subscription.wsConnection.session.id !== session.id);
+            v = v.filter(subscription => {
+                if (subscription.wsConnection.session.id === session.id) {
+                    this.subscriptionDeletions.next(subscription);
+                }
+                return subscription.wsConnection.session.id !== session.id;
+            });
             channelSubscriptions.set(k, v);
         });
         this.channelSubscriptions = channelSubscriptions;
@@ -94,6 +102,7 @@ export class WebsocketService {
 
         if (this.channelSubscriptions.get(payload.channel)) {
             this.channelSubscriptions.get(payload.channel).push(subscription);
+            this.subscriptionCreations.next(subscription);
         }
 
         const connection = this.connections.get(session.id);
@@ -110,7 +119,12 @@ export class WebsocketService {
 
         let subscriptionList = this.channelSubscriptions.get(payload.channel);
         if (subscriptionList) {
-            subscriptionList = subscriptionList.filter(subscription => subscription.id !== payload.subscriptionId);
+            subscriptionList = subscriptionList.filter(subscription => {
+                if (subscription.id === payload.subscriptionId) {
+                    this.subscriptionDeletions.next(subscription);
+                }
+                return subscription.id !== payload.subscriptionId;
+            });
             this.channelSubscriptions.set(payload.channel, subscriptionList);
         }
     }
@@ -208,4 +222,11 @@ export class WebsocketService {
         this.channelSubscriptions.set(name, []);
     }
 
+    public getSubscriptionCreations(): Observable<Subscription> {
+        return this.subscriptionCreations.asObservable();
+    }
+
+    public getSubscriptionDeletions(): Observable<Subscription> {
+        return this.subscriptionDeletions.asObservable();
+    }
 }
