@@ -5,3 +5,4 @@ export { Application, ApplicationConfig } from './application/application';
 export { NotificationService } from './controller/notification-service';
 export { Session } from './controller/interfaces/session';
 export { Logger } from './controller/logger';
+export { Subscription } from './controller/websocket-service';
