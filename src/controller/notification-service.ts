@@ -23,11 +23,7 @@ export class NotificationService {
         this.logger.log('sendNotification', channel);
         this.websocketService.forEachSubscription(channel, s => {
             if (this.securityService.canListenChannel(s.wsConnection.session, channel)) {
-                const message: NotificationMessage = {
-                    id: s.id,
-                    payload: payload
-                }
-                s.wsConnection.ws.send(JSON.stringify(message));
+                s.send(payload);
             }
         });
     }

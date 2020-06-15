@@ -7,11 +7,13 @@ import { ClientMessage, ClientMessageType, CreateSubscriptionPayload, CloseSubsc
 import { CreateSubscriptionResponse, ErrorResponseMessage, ErrorResponseMessageType } from './interfaces/server-messages';
 import { SecurityService } from './security-service';
 import { Session } from './interfaces/session';
+import { NotificationMessage } from './notification-service';
 
 export interface Subscription {
     id: string;
     channel: string;
     wsConnection: WsConnection;
+    send: (payload: any) => void;
 }
 
 export interface WsConnection {
@@ -93,11 +95,20 @@ export class WebsocketService {
         }
 
         const subscriptionId = messageId;
+        const wsConnection = <WsConnection>this.connections.get(session.id);
 
         const subscription: Subscription = {
             id: subscriptionId,
             channel: payload.channel,
-            wsConnection: <WsConnection>this.connections.get(session.id)
+            wsConnection: wsConnection,
+            send: (p: any) => {
+
+                const message: NotificationMessage = {
+                    id: subscriptionId,
+                    payload: p
+                }
+                wsConnection.ws.send(JSON.stringify(message));
+            }
         };
 
         if (this.channelSubscriptions.get(payload.channel)) {
