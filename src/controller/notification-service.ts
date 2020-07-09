@@ -20,7 +20,6 @@ export class NotificationService {
     ) { }
 
     public sendNotification(channel: string, payload: any): void {
-        this.logger.log('sendNotification', channel);
         this.websocketService.forEachSubscription(channel, s => {
             if (this.securityService.canListenChannel(s.wsConnection.session, channel)) {
                 s.send(payload);

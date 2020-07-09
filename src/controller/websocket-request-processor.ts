@@ -34,7 +34,6 @@ export class WebsocketRequestProcessor {
     }
 
     private sendResult(result: any): void {
-        console.log('sendResult', result);
         const message: ResponseMessage = {
             id: this.requestId,
             payload: result
