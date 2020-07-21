@@ -65,7 +65,7 @@ export class RequestManagerService {
     
     public start(port: number): void {
         this.app = express();
-        this.app.use(express.json({ strict: false }));
+        this.app.use(express.json({ strict: false, limit: '10mb' }));
         this.app.use(function(req, res, next) {
             res.header("Access-Control-Allow-Origin", "*");
             res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
