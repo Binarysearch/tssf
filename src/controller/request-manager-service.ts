@@ -103,7 +103,6 @@ export class RequestManagerService {
                 },
                 (error) => {
                     wss.handleUpgrade(request, socket, upgradeHead, (ws) => {
-                        console.log('CLOSED');
                         ws.close(WsCloseCode.INVALID_CREDENTIALS);
                     });
                 }

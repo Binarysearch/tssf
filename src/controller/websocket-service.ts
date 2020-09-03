@@ -66,7 +66,6 @@ export class WebsocketService {
         }));
         const connection = { session, ws };
         this.connections.set(session.id, connection);
-        console.log('Cliente conectado.', session);
     }
     
     public onClose(code: number, reason: string, session: Session) {
@@ -84,11 +83,9 @@ export class WebsocketService {
             channelSubscriptions.set(k, v);
         });
         this.channelSubscriptions = channelSubscriptions;
-        console.log('Cliente desconectado.', session, code, reason);
     }
 
     private handleCreateSubscriptionMessage(session: Session, messageId: string, payload: CreateSubscriptionPayload) {
-        console.log('handleCreateSubscriptionMessage', session, messageId, payload);
         
         if (!this.channelSubscriptions.has(payload.channel)) {
             this.handleChannelNotFound(session, messageId, payload);
@@ -126,7 +123,6 @@ export class WebsocketService {
     }
 
     private handleRemoveSubscriptionMessage(session: Session, messageId: string, payload: CloseSubscriptionPayload) {
-        console.log('handleRemoveSubscriptionMessage', session, messageId, payload);
 
         let subscriptionList = this.channelSubscriptions.get(payload.channel);
         if (subscriptionList) {
